@@ -91,6 +91,8 @@ target_link_libraries(${CURRENT_PROJECT_NAME}
         crypto3::random
         crypto3::zk
 
+        crypto3::blueprint
+
         marshalling::core
         marshalling::crypto3_algebra
         marshalling::crypto3_multiprecision
