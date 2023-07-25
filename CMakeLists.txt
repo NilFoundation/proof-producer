@@ -42,7 +42,6 @@ option(BUILD_SHARED_LIBS "Build shared library" TRUE)
 
 add_subdirectories("${CMAKE_CURRENT_LIST_DIR}/bin")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3")
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/blueprint")
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/module")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/plugin")

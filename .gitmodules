@@ -1,0 +1,15 @@
+[submodule "libs/crypto3"]
+	path = libs/crypto3
+	url = ../../NilFoundation/crypto3.git
+[submodule "cmake/modules"]
+	path = cmake/modules
+	url = ../../BoostCMake/cmake_modules.git
+[submodule "libs/module"]
+	path = libs/module
+	url = ../../NilFoundation/module.git
+[submodule "libs/plugin"]
+	path = libs/plugin
+	url = ../../NilFoundation/plugin.git
+[submodule "libs/application"]
+	path = libs/application
+	url = ../../NilFoundation/application.git
