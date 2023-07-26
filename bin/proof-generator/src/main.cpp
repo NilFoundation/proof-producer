@@ -38,7 +38,7 @@
 #include <nil/proof-generator/detail/configurable.hpp>
 
 #include <nil/proof-generator/circuits/mina-state/proof.hpp>
-#include <nil/proof-generator/assigner/proof.hpp>
+#include <nil/proof-generator/prover.hpp>
 
 template<typename F, typename First, typename... Rest>
 inline void insert_aspect(F f, First first, Rest... rest) {
@@ -96,41 +96,20 @@ inline bool configure_aspects(boost::application::context &ctx, Application &app
     return false;
 }
 
-void proof_new(boost::json::value circuit_description, boost::json::value public_input, std::string output_file) {
-    std::string statement_type = boost::json::value_to<std::string>(circuit_description.at("type"));
-    if (statement_type == "placeholder-zkllvm") {
-        std::string bytecode =
-            boost::json::value_to<std::string>(circuit_description.at("definition").at("proving_key"));
-        nil::proof_generator::assigner::proof_new(bytecode, public_input, output_file);
-    } else if (statement_type == "placeholder-vanilla") {
-        boost::json::value statement = circuit_description.at("definition").at("proving_key");
-        nil::proof_generator::mina_state::proof_new(statement, public_input, output_file);
-    } else {
-        std::cout << "Unknown statement type: " << statement_type << "\n";
-    }
-}
-
 struct prover {
     prover(boost::application::context &context) : context_(context) {
     }
 
     int operator()() {
         BOOST_APPLICATION_FEATURE_SELECT
-        std::string json_circuit =
-            context_.find<nil::proof_generator::aspects::prover_vanilla>()->input_circuit_string();
-        std::string json_public_input =
-            context_.find<nil::proof_generator::aspects::prover_vanilla>()->input_public_params_string();
-        std::string output_file = context_.find<nil::proof_generator::aspects::prover_vanilla>()->output_file_string();
-        boost::json::error_code ec;
+        boost::filesystem::path circuit_file_path =
+            context_.find<nil::proof_generator::aspects::prover_vanilla>()->input_circuit_file_path();
+        boost::filesystem::path assignment_file_path =
+            context_.find<nil::proof_generator::aspects::prover_vanilla>()->input_assignment_file_path();
 
-        boost::json::value circuit_description = boost::json::parse(json_circuit, ec);
-        if (ec)
-            std::cout << "Json circuit description parsing failed: " << ec.message() << "\n";
-        boost::json::value public_input = boost::json::parse(json_public_input, ec);
-        if (ec)
-            std::cout << "Json public_input parsing failed: " << ec.message() << "\n";
+        boost::filesystem::path proof_file = context_.find<nil::proof_generator::aspects::prover_vanilla>()->output_proof_file_path();
 
-        proof_new(circuit_description, public_input, output_file);
+        nil::proof_generator::prover(circuit_file_path, assignment_file_path, proof_file);
 
         return 0;
     }

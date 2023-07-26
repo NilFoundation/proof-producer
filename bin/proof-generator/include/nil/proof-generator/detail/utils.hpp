@@ -40,7 +40,7 @@ namespace nil {
         }
 
         template<typename Endianness, typename Proof>
-        void proof_print(const Proof &proof, std::string output_file) {
+        void proof_print(const Proof &proof, boost::filesystem::path output_file) {
             using namespace nil::crypto3::marshalling;
 
             using TTypeBase = nil::marshalling::field_type<Endianness>;

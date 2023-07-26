@@ -51,18 +51,18 @@ namespace nil {
 
                 virtual void initialize(configuration_type &vm) override;
 
-                std::string input_circuit_string() const;
-                std::string input_public_params_string() const;
-                std::string output_file_string() const;
+                boost::filesystem::path input_circuit_file_path() const;
+                boost::filesystem::path input_assignment_file_path() const;
+                boost::filesystem::path output_proof_file_path() const;
 
                 boost::filesystem::path default_config_path() const;
 
             protected:
                 boost::shared_ptr<path> path_aspect;
 
-                std::string json_circuit;
-                std::string json_public_input;
-                std::string output_file;
+                boost::filesystem::path circuit_file_path;
+                boost::filesystem::path assignment_table_file_path;
+                boost::filesystem::path proof_file_path;
             };
         }    // namespace aspects
     }        // namespace proof_generator

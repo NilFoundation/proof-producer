@@ -46,9 +46,9 @@ namespace nil {
                 // clang-format off
                 options.add_options()
                 ("version,v", "Display version")
-                ("proof_out", boost::program_options::value<std::string>(),"Output file")
-                ("circuit_input", boost::program_options::value<std::string>(), "Circuit input file")
-                ("public_input", boost::program_options::value<std::string>(), "Public params input file");
+                ("proof", boost::program_options::value<std::string>(),"Output proof file")
+                ("circuit,c", boost::program_options::value<std::string>(), "Circuit input file")
+                ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file");
                 // clang-format on
                 cli.add(options);
             }
@@ -58,37 +58,32 @@ namespace nil {
                 // clang-format off
                 options.add_options()
                 ("version,v", "Display version")
-                ("proof_out", boost::program_options::value<std::string>(),"Output file")
-                ("circuit_input", boost::program_options::value<std::string>(), "Circuit input file")
-                ("public_input", boost::program_options::value<std::string>(), "Public params input file");
+                ("proof", boost::program_options::value<std::string>(),"Output proof file")
+                ("circuit,c", boost::program_options::value<std::string>(), "Circuit input file")
+                ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file");
                 // clang-format on
                 cfg.add(options);
             }
 
             void prover_vanilla::initialize(configuration_type &vm) {
-                if (vm.count("circuit_input")) {
-                    if (vm["circuit_input"].as<std::string>().size() < PATH_MAX ||
-                        vm["circuit_input"].as<std::string>().size() < FILENAME_MAX) {
-                        if (boost::filesystem::exists(vm["circuit_input"].as<std::string>())) {
-                            boost::filesystem::load_string_file(vm["circuit_input"].as<std::string>(), json_circuit);
+                if (vm.count("circuit")) {
+                    if (vm["circuit"].as<std::string>().size() < PATH_MAX ||
+                        vm["circuit"].as<std::string>().size() < FILENAME_MAX) {
+                        if (boost::filesystem::exists(vm["circuit"].as<std::string>())) {
+                            circuit_file_path = vm["circuit"].as<std::string>();
                         }
-                    } else {
-                        json_circuit = vm["circuit_input"].as<std::string>();
                     }
                 }
-                if (vm.count("public_input")) {
-                    if (vm["public_input"].as<std::string>().size() < PATH_MAX ||
-                        vm["public_input"].as<std::string>().size() < FILENAME_MAX) {
-                        if (boost::filesystem::exists(vm["public_input"].as<std::string>())) {
-                            boost::filesystem::load_string_file(vm["public_input"].as<std::string>(),
-                                                                json_public_input);
+                if (vm.count("assignment-table")) {
+                    if (vm["assignment-table"].as<std::string>().size() < PATH_MAX ||
+                        vm["assignment-table"].as<std::string>().size() < FILENAME_MAX) {
+                        if (boost::filesystem::exists(vm["assignment-table"].as<std::string>())) {
+                            assignment_table_file_path = vm["assignment-table"].as<std::string>();
                         }
-                    } else {
-                        json_public_input = vm["public_input"].as<std::string>();
                     }
                 }
-                if (vm.count("proof_out")) {
-                    output_file = vm["proof_out"].as<std::string>();
+                if (vm.count("proof")) {
+                    proof_file_path = vm["proof"].as<std::string>();
                 }
             }
 
@@ -96,16 +91,16 @@ namespace nil {
                 return path_aspect->config_path() / "config.ini";
             }
 
-            std::string prover_vanilla::input_circuit_string() const {
-                return json_circuit;
+            boost::filesystem::path  prover_vanilla::input_circuit_file_path() const {
+                return circuit_file_path;
             }
 
-            std::string prover_vanilla::input_public_params_string() const {
-                return json_public_input;
+            boost::filesystem::path prover_vanilla::input_assignment_file_path() const {
+                return assignment_table_file_path;
             }
 
-            std::string prover_vanilla::output_file_string() const {
-                return output_file;
+            boost::filesystem::path prover_vanilla::output_proof_file_path() const {
+                return proof_file_path;
             }
         }    // namespace aspects
     }        // namespace proof_generator
