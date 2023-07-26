@@ -16,3 +16,6 @@
 [submodule "libs/blueprint"]
 	path = libs/blueprint
 	url = ../../NilFoundation/zkllvm-blueprint.git
+[submodule "libs/transpiler"]
+	path = libs/transpiler
+	url = ../../NilFoundation/zkllvm-transpiler.git

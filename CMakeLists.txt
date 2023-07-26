@@ -51,3 +51,4 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/plugin")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/application")
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/blueprint")
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/transpiler")

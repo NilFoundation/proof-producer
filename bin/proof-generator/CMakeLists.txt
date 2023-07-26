@@ -78,9 +78,6 @@ set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES
         CXX_STANDARD_REQUIRED TRUE)
 
 target_link_libraries(${CURRENT_PROJECT_NAME}
-        LLVMIRReader
-        LLVMCore
-        LLVMSupport
 
         crypto3::algebra
         crypto3::block
@@ -92,6 +89,7 @@ target_link_libraries(${CURRENT_PROJECT_NAME}
         crypto3::zk
 
         crypto3::blueprint
+	crypto3::transpiler
 
         marshalling::core
         marshalling::crypto3_algebra
