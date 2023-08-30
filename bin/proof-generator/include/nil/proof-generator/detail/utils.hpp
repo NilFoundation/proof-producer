@@ -53,7 +53,7 @@ namespace nil {
             auto write_iter = cv.begin();
             nil::marshalling::status_type status = filled_placeholder_proof.write(write_iter, cv.size());
             std::ofstream out;
-            out.open(output_file);
+            out.open(output_file.c_str());
             print_hex_byteblob(out, cv.cbegin(), cv.cend(), false);
         }
     }    // namespace proof_generator

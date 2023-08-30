@@ -37,7 +37,7 @@
 #include <nil/proof-generator/aspects/prover_vanilla.hpp>
 #include <nil/proof-generator/detail/configurable.hpp>
 
-#include <nil/proof-generator/circuits/mina-state/proof.hpp>
+
 #include <nil/proof-generator/prover.hpp>
 
 template<typename F, typename First, typename... Rest>
