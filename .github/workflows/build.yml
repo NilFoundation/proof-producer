@@ -1,0 +1,86 @@
+name: Build
+
+on:
+  push:
+    branches: [ 8-add-ci ]
+
+jobs:
+  build-linux:
+    runs-on: [ "self-hosted", "aws_autoscaling"]
+
+    env:
+      CONTAINER_TMP: /opt/
+      HOST_TMP: /home/runner/work/_temp/
+      DEBIAN_FRONTEND: noninteractive
+      BOOST_VERSION: "1.80.0"
+
+    container:
+      image: ubuntu:22.04
+      volumes:
+        - /home/runner/work/_temp/:/opt/
+
+    steps:
+      - name: Install dependencies
+        run: |
+          env && \
+          apt update && \
+          apt install -y \
+            build-essential \
+            libssl-dev \
+            cmake \
+            git \
+            unzip \
+            libicu-dev \
+            curl \
+            pkg-config \
+            libspdlog-dev
+
+      - name: Print toolchain information
+        run: |
+          git --version
+          cc --version
+          cmake --version
+
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+          fetch-depth: 0
+          
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          
+      # Workaround: https://github.com/actions/checkout/issues/1169
+      - name: Mark directory as safe
+        run: |
+          git config --system --add safe.directory $PWD
+
+      - name: Install boost
+        uses: MarkusJx/install-boost@v2.4.1
+        id: install-boost
+        with:
+            # A list of supported versions can be found here:
+            # https://github.com/MarkusJx/prebuilt-boost/blob/main/versions-manifest.json
+            boost_version: ${{ env.BOOST_VERSION }}
+            boost_install_dir: ${{ env.CONTAINER_TMP }}
+            platform_version: 22.04
+            toolset: gcc
+            arch: x86
+
+      - name: Configure CMake
+        env:
+          BOOST_ROOT: "${{ steps.install-boost.outputs.BOOST_ROOT }}"
+        run: |
+          cmake -G "Unix Makefiles" \
+            -B build \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build proof-producer
+        env:
+           BOOST_ROOT: "${{ steps.install-boost.outputs.BOOST_ROOT }}"
+        run: |
+            cd build 
+            make
+            
