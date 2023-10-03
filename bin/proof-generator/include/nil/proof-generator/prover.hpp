@@ -24,17 +24,33 @@
 #include <random>
 
 #include <nil/crypto3/algebra/curves/pallas.hpp>
-
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
-
-#include <nil/blueprint/transpiler/table_profiling.hpp>
+#include <nil/crypto3/marshalling/zk/types/plonk/constraint_system.hpp>
+#include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
+#include <nil/crypto3/multiprecision/cpp_int.hpp>
+#include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
+#include <nil/crypto3/hash/keccak.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/params.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/preprocessor.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/profiling.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/proof.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
+#include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 
 #include <nil/marshalling/status_type.hpp>
 #include <nil/marshalling/field_type.hpp>
 #include <nil/marshalling/endianness.hpp>
-#include <nil/crypto3/marshalling/zk/types/plonk/constraint_system.hpp>
-#include <nil/crypto3/multiprecision/cpp_int.hpp>
+
+#include <nil/blueprint/basic_non_native_policy.hpp>
+#include <nil/blueprint/utils/satisfiability_check.hpp>
+
+#include <nil/blueprint/transpiler/table_profiling.hpp>
+
+#include <nil/proof-generator/detail/utils.hpp>
+
 
 namespace nil {
     namespace proof_generator {
@@ -126,7 +142,7 @@ namespace nil {
             std::cout << "generatring zkllvm proof..." << std::endl;
 
             std::ifstream ifile;
-            ifile.open(circuit_file_path);
+            ifile.open(circuit_file_path.c_str());
             if (!ifile.is_open()) {
                 std::cout << "Cannot find input file " << circuit_file_path << std::endl;
                 return;
@@ -164,7 +180,7 @@ namespace nil {
                 nil::crypto3::zk::snark::plonk_table<BlueprintFieldType, ArithmetizationParams, ColumnType>;
 
             std::ifstream iassignment;
-            iassignment.open(assignment_file_path);
+            iassignment.open(assignment_file_path.c_str());
             if (!iassignment) {
                 std::cout << "Cannot open " << assignment_file_path << std::endl;
                 return;
