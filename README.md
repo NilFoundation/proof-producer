@@ -1,7 +1,7 @@
 # proof-producer
 Proof producer for the =nil; Proof Market https://proof.market.nil.foundation/ 
 # How to use
-It is neede to have [zkllvm](https://raw.githubusercontent.com/NilFoundation/zkllvm) assigner.
+It is needed to have [zkllvm](https://raw.githubusercontent.com/NilFoundation/zkllvm).
 
 To generate proof:
 
