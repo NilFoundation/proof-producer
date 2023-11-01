@@ -53,6 +53,7 @@ namespace nil {
 
                 boost::filesystem::path input_circuit_file_path() const;
                 boost::filesystem::path input_assignment_file_path() const;
+                bool input_skip_verification() const;
                 boost::filesystem::path output_proof_file_path() const;
 
                 boost::filesystem::path default_config_path() const;
@@ -63,6 +64,8 @@ namespace nil {
                 boost::filesystem::path circuit_file_path;
                 boost::filesystem::path assignment_table_file_path;
                 boost::filesystem::path proof_file_path;
+
+                bool skip_verification;
             };
         }    // namespace aspects
     }        // namespace proof_generator

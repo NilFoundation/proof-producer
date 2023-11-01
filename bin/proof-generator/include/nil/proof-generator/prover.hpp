@@ -126,7 +126,7 @@ namespace nil {
         
         }    // namespace detail
 
-        void prover(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file) {
+        void prover(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file, bool skip_verification) {
             using curve_type = nil::crypto3::algebra::curves::pallas;
             using BlueprintFieldType = typename curve_type::base_field_type;
             constexpr std::size_t WitnessColumns = 15;
@@ -254,18 +254,22 @@ namespace nil {
                     lpc_scheme);
                 std::cout << "Proof generated" << std::endl;
 
-                std::cout << "Verifying proof..." << std::endl;
-                bool verification_result =
-                    nil::crypto3::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
-                        public_preprocessed_data, proof, constraint_system, lpc_scheme
-                    );
+                if (!skip_verification) {
+                    std::cout << "Verifying proof..." << std::endl;
+                    bool verification_result =
+                        nil::crypto3::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
+                            public_preprocessed_data, proof, constraint_system, lpc_scheme
+                        );
 
-                if (!verification_result) {
-                    std::cout << "Something went wrong - proof is not verified" << std::endl;
-                    return;
+                    if (!verification_result) {
+                        std::cout << "Something went wrong - proof is not verified" << std::endl;
+                        return;
+                    }
+
+                    std::cout << "Proof is verified" << std::endl;
+                } else {
+                    std::cout << "Proof verification skipped" << std::endl;
                 }
-
-                std::cout << "Proof is verified" << std::endl;
 
                 std::cout << "Writing proof to " << proof_file << "..." << std::endl;
                 auto filled_placeholder_proof =

@@ -47,7 +47,8 @@ namespace nil {
                 ("version,v", "Display version")
                 ("proof", boost::program_options::value<std::string>(),"Output proof file")
                 ("circuit,c", boost::program_options::value<std::string>(), "Circuit input file")
-                ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file");
+                ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file")
+                ("skip-verification", "Skip verification");
                 // clang-format on
                 cli.add(options);
             }
@@ -59,7 +60,8 @@ namespace nil {
                 ("version,v", "Display version")
                 ("proof", boost::program_options::value<std::string>(),"Output proof file")
                 ("circuit,c", boost::program_options::value<std::string>(), "Circuit input file")
-                ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file");
+                ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file")
+                ("skip-verification", "Skip verification");
                 // clang-format on
                 cfg.add(options);
             }
@@ -84,6 +86,8 @@ namespace nil {
                 if (vm.count("proof")) {
                     proof_file_path = vm["proof"].as<std::string>();
                 }
+
+                skip_verification = (vm.count("skip-verification") != 0);
             }
 
             boost::filesystem::path prover_vanilla::default_config_path() const {
@@ -100,6 +104,10 @@ namespace nil {
 
             boost::filesystem::path prover_vanilla::output_proof_file_path() const {
                 return proof_file_path;
+            }
+
+            bool prover_vanilla::input_skip_verification() const {
+                return skip_verification;
             }
         }    // namespace aspects
     }        // namespace proof_generator
