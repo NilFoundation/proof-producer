@@ -1,0 +1,378 @@
+//---------------------------------------------------------------------------//
+// Copyright (c) 2018-2021 Mikhail Komarov <nemo@nil.foundation>
+//
+// MIT License
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+//---------------------------------------------------------------------------//
+
+#pragma once
+
+#include <typeindex>
+
+#include <boost/config.hpp>
+
+#include <nil/actor/core/sstring.hh>
+#include <nil/actor/core/function_traits.hh>
+
+/// \file
+
+namespace nil {
+    namespace actor {
+
+        constexpr unsigned max_scheduling_groups() {
+            return 16;
+        }
+
+#if ACTOR_API_LEVEL < 6
+#define ACTOR_ELLIPSIS ...
+        template<typename ACTOR_ELLIPSIS T>
+#else
+#define ACTOR_ELLIPSIS
+        template<typename T = void>
+#endif
+        class future;
+
+        class reactor;
+
+        class scheduling_group;
+        class scheduling_group_key;
+
+        namespace detail {
+
+            // Returns an index between 0 and max_scheduling_groups()
+            unsigned scheduling_group_index(scheduling_group sg) noexcept;
+            scheduling_group scheduling_group_from_index(unsigned index) noexcept;
+
+            unsigned long scheduling_group_key_id(scheduling_group_key) noexcept;
+
+            template<typename T>
+            T *scheduling_group_get_specific_ptr(scheduling_group sg, scheduling_group_key key) noexcept;
+
+        }    // namespace detail
+
+        /// Creates a scheduling group with a specified number of shares.
+        ///
+        /// The operation is global and affects all shards. The returned scheduling
+        /// group can then be used in any shard.
+        ///
+        /// \param name A name that identifiers the group; will be used as a label
+        ///             in the group's metrics
+        /// \param shares number of shares of the CPU time allotted to the group;
+        ///              Use numbers in the 1-1000 range (but can go above).
+        /// \return a scheduling group that can be used on any shard
+        future<scheduling_group> create_scheduling_group(sstring name, float shares) noexcept;
+
+        /// Destroys a scheduling group.
+        ///
+        /// Destroys a \ref scheduling_group previously created with create_scheduling_group().
+        /// The destroyed group must not be currently in use and must not be used later.
+        ///
+        /// The operation is global and affects all shards.
+        ///
+        /// \param sg The scheduling group to be destroyed
+        /// \return a future that is ready when the scheduling group has been torn down
+        future<> destroy_scheduling_group(scheduling_group sg) noexcept;
+
+        /// Rename scheduling group.
+        ///
+        /// Renames a \ref scheduling_group previously created with create_scheduling_group().
+        ///
+        /// The operation is global and affects all shards.
+        /// The operation affects the exported statistics labels.
+        ///
+        /// \param sg The scheduling group to be renamed
+        /// \param new_name The new name for the scheduling group.
+        /// \return a future that is ready when the scheduling group has been renamed
+        future<> rename_scheduling_group(scheduling_group sg, sstring new_name) noexcept;
+
+        /**
+         * Represents a configuration for a specific scheduling group value,
+         * it contains all that is needed to maintain a scheduling group specific
+         * value when it needs to be created, due to, for example, a new
+         * \ref scheduling_group being created.
+         *
+         * @note is is recomended to use @ref make_scheduling_group_key_config in order to
+         * create and configure this syructure. The only reason that one might want to not use
+         * this method is because of a need for specific intervention in the construction or
+         * destruction of the value. Even then, it is recommended to first create the configuration
+         * with @ref make_scheduling_group_key_config and only the change it.
+         *
+         */
+        struct scheduling_group_key_config {
+            /**
+             * Constructs a default configuration
+             */
+            scheduling_group_key_config() : scheduling_group_key_config(typeid(void)) {
+            }
+            /**
+             * Creates a configuration that is made for a specific type.
+             * It does not contain the right alignment and allocation sizes
+             * neither the correct construction or destruction logic, but only
+             * the indication for the intended type which is used in debug mode
+             * to make sure that the correct type is reffered to when accessing
+             * the value.
+             * @param type_info - the type information class (create with typeid(T)).
+             */
+            scheduling_group_key_config(const std::type_info &type_info) : type_index(type_info) {
+            }
+            /// The allocation size for the value (usually: sizeof(T))
+            size_t allocation_size;
+            /// The required alignment of the value (usually: alignof(T))
+            size_t alignment;
+            /// Holds the type information for debug mode runtime validation
+            std::type_index type_index;
+            /// A function that will be called for each newly allocated value
+            std::function<void(void *)> constructor;
+            /// A function that will be called for each element that is about
+            /// to be dealocated.
+            std::function<void(void *)> destructor;
+        };
+
+        /**
+         * A class that is intended to encapsulate the scheduling group specific
+         * key and "hide" it implementation concerns and details.
+         *
+         * @note this object can be copied accross shards and scheduling groups.
+         */
+        class scheduling_group_key {
+        public:
+            /// The only user allowed operation on a key is copying.
+            scheduling_group_key(const scheduling_group_key &) noexcept = default;
+            scheduling_group_key(scheduling_group_key &&) noexcept = default;
+
+        private:
+            scheduling_group_key(unsigned long id) noexcept : _id(id) {
+            }
+            unsigned long _id;
+            unsigned long id() const noexcept {
+                return _id;
+            }
+            friend class reactor;
+            friend future<scheduling_group_key> scheduling_group_key_create(scheduling_group_key_config cfg) noexcept;
+            template<typename T>
+            friend T *detail::scheduling_group_get_specific_ptr(scheduling_group sg, scheduling_group_key key) noexcept;
+            template<typename T>
+            friend T &scheduling_group_get_specific(scheduling_group_key key) noexcept;
+
+            friend unsigned long detail::scheduling_group_key_id(scheduling_group_key key) noexcept;
+        };
+
+        namespace detail {
+
+            inline unsigned long scheduling_group_key_id(scheduling_group_key key) noexcept {
+                return key.id();
+            }
+
+            /**
+             * @brief A function in the spirit of Cpp17 apply, but specifically for constructors.
+             * This function is used in order to preserve support in Cpp14.
+
+             * @tparam ConstructorType - the constructor type or in other words the type to be constructed
+             * @tparam Tuple - T params tuple type (should be deduced)
+             * @tparam size_t...Idx - a sequence of indexes in order to access the typpels members in compile time.
+             * (should be deduced)
+             *
+             * @param pre_alocated_mem - a pointer to the pre allocated memory chunk that will hold the
+             * the initialized object.
+             * @param args - A tupple that holds the prarameters for the constructor
+             * @param idx_seq - An index sequence that will be used to access the members of the tuple in compile
+             * time.
+             *
+             * @note this function was not intended to be called by users and it is only a utility function
+             * for suporting \ref make_scheduling_group_key_config
+             */
+            template<typename ConstructorType, typename Tuple, size_t... Idx>
+            void apply_constructor(void *pre_alocated_mem, Tuple args, std::index_sequence<Idx...> idx_seq) {
+                new (pre_alocated_mem) ConstructorType(std::get<Idx>(args)...);
+            }
+        }    // namespace detail
+
+        /**
+         * A template function that builds a scheduling group specific value configuration.
+         * This configuration is used by the infrastructure to allocate memory for the values
+         * and initialize or deinitialize them when they are created or destroyed.
+         *
+         * @tparam T - the type for the newly created value.
+         * @tparam ...ConstructorArgs - the types for the constructor parameters (should be deduced)
+         * @param args - The parameters for the constructor.
+         * @return a fully initialized \ref scheduling_group_key_config object.
+         */
+        template<typename T, typename... ConstructorArgs>
+        scheduling_group_key_config make_scheduling_group_key_config(ConstructorArgs... args) {
+            scheduling_group_key_config sgkc(typeid(T));
+            sgkc.allocation_size = sizeof(T);
+            sgkc.alignment = alignof(T);
+            sgkc.constructor = [args = std::make_tuple(args...)](void *p) {
+                detail::apply_constructor<T>(p, args, std::make_index_sequence<sizeof...(ConstructorArgs)>());
+            };
+            sgkc.destructor = [](void *p) { static_cast<T *>(p)->~T(); };
+            return sgkc;
+        }
+
+        /**
+         * Returns a future that holds a scheduling key and resolves when this key can be used
+         * to access the scheduling group specific value it represents.
+         * @param cfg - A \ref scheduling_group_key_config object (by recomendation: initialized with
+         * \ref make_scheduling_group_key_config )
+         * @return A future containing \ref scheduling_group_key for the newly created specific value.
+         */
+        future<scheduling_group_key> scheduling_group_key_create(scheduling_group_key_config cfg) noexcept;
+
+        /**
+         * Returnes a reference to the given scheduling group specific value
+         * @tparam T - the type of the scheduling specific type (cannot be deduced)
+         * @param sg - the scheduling group which it's specific value to retrieve
+         * @param key - the key of the value to retrieve.
+         * @return A reference to the scheduling specific value.
+         */
+        template<typename T>
+        T &scheduling_group_get_specific(scheduling_group sg, scheduling_group_key key);
+
+        /// \brief Identifies function calls that are accounted as a group
+        ///
+        /// A `scheduling_group` is a tag that can be used to mark a function call.
+        /// Executions of such tagged calls are accounted as a group.
+        class scheduling_group {
+            unsigned _id;
+
+        private:
+            explicit scheduling_group(unsigned id) noexcept : _id(id) {
+            }
+
+        public:
+            /// Creates a `scheduling_group` object denoting the default group
+            constexpr scheduling_group() noexcept : _id(0) {
+            }    // must be constexpr for current_scheduling_group_holder
+            bool active() const noexcept;
+            const sstring &name() const noexcept;
+            bool operator==(scheduling_group x) const noexcept {
+                return _id == x._id;
+            }
+            bool operator!=(scheduling_group x) const noexcept {
+                return _id != x._id;
+            }
+            bool is_main() const noexcept {
+                return _id == 0;
+            }
+            template<typename T>
+            /**
+             * Returnes a reference to this scheduling group specific value
+             * @tparam T - the type of the scheduling specific type (cannot be deduced)
+             * @param key - the key of the value to retrieve.
+             * @return A reference to this scheduling specific value.
+             */
+            T &get_specific(scheduling_group_key key) noexcept {
+                return *detail::scheduling_group_get_specific_ptr<T>(*this, key);
+            }
+            /// Adjusts the number of shares allotted to the group.
+            ///
+            /// Dynamically adjust the number of shares allotted to the group, increasing or
+            /// decreasing the amount of CPU bandwidth it gets. The adjustment is local to
+            /// the shard.
+            ///
+            /// This can be used to reduce a background job's interference with a foreground
+            /// load: the shares can be started at a low value, increased when the background
+            /// job's backlog increases, and reduced again when the backlog decreases.
+            ///
+            /// \param shares number of shares allotted to the group. Use numbers
+            ///               in the 1-1000 range.
+            void set_shares(float shares) noexcept;
+            friend future<scheduling_group> create_scheduling_group(sstring name, float shares) noexcept;
+            friend future<> destroy_scheduling_group(scheduling_group sg) noexcept;
+            friend future<> rename_scheduling_group(scheduling_group sg, sstring new_name) noexcept;
+            friend class reactor;
+            friend unsigned detail::scheduling_group_index(scheduling_group sg) noexcept;
+            friend scheduling_group detail::scheduling_group_from_index(unsigned index) noexcept;
+// clang-format off
+#ifdef BOOST_HAS_CONCEPTS
+            template<typename SpecificValType, typename Mapper, typename Reducer, typename Initial>
+            requires requires(SpecificValType specific_val, Mapper mapper, Reducer reducer, Initial initial) {
+                { reducer(initial, mapper(specific_val)) } -> std::convertible_to<Initial>;
+            }
+            friend future<typename function_traits<Reducer>::return_type>
+                map_reduce_scheduling_group_specific(Mapper mapper, Reducer reducer, Initial initial_val,
+                                                     scheduling_group_key key);
+
+            template<typename SpecificValType, typename Reducer, typename Initial>
+            requires requires(SpecificValType specific_val, Reducer reducer, Initial initial) {
+                { reducer(initial, specific_val) } -> std::convertible_to<Initial>;
+            }
+            friend future<typename function_traits<Reducer>::return_type>
+                reduce_scheduling_group_specific(Reducer reducer, Initial initial_val, scheduling_group_key key);
+#else
+            template<typename SpecificValType, typename Mapper, typename Reducer, typename Initial>
+            friend future<typename function_traits<Reducer>::return_type>
+                map_reduce_scheduling_group_specific(Mapper mapper, Reducer reducer, Initial initial_val,
+                                                     scheduling_group_key key);
+
+            template<typename SpecificValType, typename Reducer, typename Initial>
+            friend future<typename function_traits<Reducer>::return_type>
+                reduce_scheduling_group_specific(Reducer reducer, Initial initial_val, scheduling_group_key key);
+
+#endif
+            // clang-format on
+        };
+
+        /// \cond internal
+        namespace detail {
+
+            inline unsigned scheduling_group_index(scheduling_group sg) noexcept {
+                return sg._id;
+            }
+
+            inline scheduling_group scheduling_group_from_index(unsigned index) noexcept {
+                return scheduling_group(index);
+            }
+
+            inline scheduling_group *current_scheduling_group_ptr() noexcept {
+                // Slow unless constructor is constexpr
+                static thread_local scheduling_group sg;
+                return &sg;
+            }
+
+        }    // namespace detail
+        /// \endcond
+
+        /// Returns the current scheduling group
+        inline scheduling_group current_scheduling_group() noexcept {
+            return *detail::current_scheduling_group_ptr();
+        }
+
+        inline scheduling_group default_scheduling_group() noexcept {
+            return scheduling_group();
+        }
+
+        inline bool scheduling_group::active() const noexcept {
+            return *this == current_scheduling_group();
+        }
+
+    }    // namespace actor
+}    // namespace nil
+
+namespace std {
+
+    template<>
+    struct hash<nil::actor::scheduling_group> {
+        size_t operator()(nil::actor::scheduling_group sg) const noexcept {
+            return nil::actor::detail::scheduling_group_index(sg);
+        }
+    };
+
+}    // namespace std

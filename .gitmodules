@@ -19,27 +19,24 @@
 [submodule "libs/transpiler"]
 	path = libs/transpiler
 	url = ../../NilFoundation/zkllvm-transpiler.git
-[submodule "libs/actor/cluster"]
-	path = libs/actor/cluster
-	url = https://github.com/NilFoundation/actor-cluster.git
-[submodule "libs/actor/container"]
-	path = libs/actor/container
-	url = https://github.com/NilFoundation/actor-containers.git
-[submodule "libs/actor/core"]
+[submodule "libs/actor-core"]
 	path = libs/actor/core
 	url = https://github.com/nilfoundation/actor-core.git
 [submodule "libs/actor/math"]
 	path = libs/actor/math
 	url = https://github.com/NilFoundation/actor-math.git
-[submodule "libs/actor/dpdk"]
-	path = libs/actor/dpdk
+[submodule "libs/dpdk"]
+	path = libs/dpdk
 	url = https://github.com/NilFoundation/dpdk.git
 [submodule "libs/actor/network"]
 	path = libs/actor/network
 	url = https://github.com/NilFoundation/actor-network.git
-[submodule "libs/actor/zk"]
+[submodule "libs/actor-zk"]
 	path = libs/actor/zk
 	url = https://github.com/nilfoundation/actor-zk.git
-[submodule "libs/actor/shim/epoll"]
-	path = libs/actor/shim/epoll
+[submodule "libs/epoll-shim"]
+	path = libs/epoll-shim
 	url = https://github.com/NilFoundation/epoll-shim.git
+[submodule "libs/actor-blueprint"]
+	path = libs/actor/blueprint
+	url = https://github.com/nilfoundation/actor-blueprint.git

@@ -79,6 +79,12 @@ set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES
 
 target_link_libraries(${CURRENT_PROJECT_NAME}
 
+        actor::core
+        actor::network
+        actor::blueprint
+        actor::math
+        actor::zk
+        
         crypto3::algebra
         crypto3::block
         crypto3::codec

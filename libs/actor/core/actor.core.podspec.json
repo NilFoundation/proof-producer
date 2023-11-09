@@ -1,0 +1,112 @@
+{
+  "name": "actor.core",
+  "version": "0.1.0",
+  "summary": "=nil; Actor C++ Actor Model Implementation",
+  "description": "=nil; Actor provides C++17 actor model implementation",
+  "homepage": "http://database.nil.foundation/projects/actor",
+  "license": "Boost Software License",
+  "authors": {
+    "Mikhail Komarov": "nemo@nil.foundation"
+  },
+  "platforms": {
+    "ios": "5.0",
+    "osx": "10.7"
+  },
+  "source": {
+    "git": "https://github.com/nilfoundation/actor.git",
+    "branch": "master"
+  },
+  "xcconfig": {
+    "CLANG_CXX_LANGUAGE_STANDARD": "c++17",
+    "CLANG_CXX_LIBRARY": "libc++",
+    "HEADER_SEARCH_PATHS": "\"${PODS_ROOT}/include/\""
+  },
+  "subspecs": [
+    {
+      "name": "include",
+      "subspecs": [
+        {
+          "name": "nil",
+          "subspecs": [
+            {
+              "name": "actor",
+              "source_files": [
+                "include/nil/actor/*.{hpp}"
+              ],
+              "subspecs": [
+                {
+                  "name": "detail",
+                  "source_files": [
+                    "include/nil/actor/detail/*.{hpp}"
+                  ],
+                  "subspecs": [
+                    {
+                      "name": "parser",
+                      "source_files": [
+                        "include/nil/actor/detail/parser/*.{hpp}"
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "decorator",
+                  "source_files": [
+                    "include/nil/actor/decorator/*.{hpp}"
+                  ]
+                },
+                {
+                  "name": "intrusive",
+                  "source_files": [
+                    "include/nil/actor/intrusive/*.{hpp}"
+                  ]
+                },
+                {
+                  "name": "meta",
+                  "source_files": [
+                    "include/nil/actor/meta/*.{hpp}"
+                  ]
+                },
+                {
+                  "name": "mixin",
+                  "source_files": [
+                    "include/nil/actor/mixin/*.{hpp}"
+                  ]
+                },
+                {
+                  "name": "policy",
+                  "source_files": [
+                    "include/nil/actor/policy/*.{hpp}"
+                  ]
+                },
+                {
+                  "name": "scheduler",
+                  "source_files": [
+                    "include/nil/actor/scheduler/*.{hpp}"
+                  ]
+                },
+                {
+                  "name": "serialization",
+                  "source_files": [
+                    "include/nil/actor/serialization/*.{hpp}"
+                  ]
+                },
+                {
+                  "name": "tag",
+                  "source_files": [
+                    "include/nil/actor/tag/*.{hpp}"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "src",
+      "source_files": [
+        "src/**/*.{cpp}"
+      ]
+    }
+  ]
+}

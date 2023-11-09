@@ -40,6 +40,9 @@
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 
+#include <nil/actor/zk/snark/arithmetization/plonk/params.hpp>
+#include <nil/actor/zk/snark/arithmetization/plonk/constraint_system.hpp>
+
 #include <nil/marshalling/status_type.hpp>
 #include <nil/marshalling/field_type.hpp>
 #include <nil/marshalling/endianness.hpp>
@@ -132,10 +135,10 @@ namespace nil {
             constexpr std::size_t SelectorColumns = 30;
 
             using ArithmetizationParams =
-                nil::crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns,
+                nil::actor::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns,
                                                                         ConstantColumns, SelectorColumns>;
             using ConstraintSystemType =
-                nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+                nil::actor::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
 
             std::vector<typename BlueprintFieldType::value_type> public_input;
 
@@ -155,10 +158,10 @@ namespace nil {
             ifile.close();
 
             using ArithmetizationParams =
-                nil::crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns,
+                nil::actor3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns,
                                                                     SelectorColumns>;
             using ConstraintSystemType =
-                nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
+                nil::actor3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
             using TableDescriptionType =
                 nil::crypto3::zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams>;
             using Endianness = nil::marshalling::option::big_endian;
@@ -177,7 +180,7 @@ namespace nil {
 
             using ColumnType = nil::crypto3::zk::snark::plonk_column<BlueprintFieldType>;
             using AssignmentTableType =
-                nil::crypto3::zk::snark::plonk_table<BlueprintFieldType, ArithmetizationParams, ColumnType>;
+                nil::actor::zk::snark::plonk_table<BlueprintFieldType, ArithmetizationParams, ColumnType>;
 
             std::ifstream iassignment;
             iassignment.open(assignment_file_path.c_str());
@@ -193,10 +196,10 @@ namespace nil {
             using Hash = nil::crypto3::hashes::keccak_1600<256>;
             using placeholder_params =
                 nil::crypto3::zk::snark::placeholder_params<BlueprintFieldType, ArithmetizationParams, Hash, Hash, Lambda>;
-            using types = nil::crypto3::zk::snark::detail::placeholder_policy<BlueprintFieldType, placeholder_params>;
+            using types = nil::actor::zk::snark::detail::placeholder_policy<BlueprintFieldType, placeholder_params>;
 
             using FRIScheme =
-                typename nil::crypto3::zk::commitments::fri<BlueprintFieldType, typename placeholder_params::merkle_hash_type,
+                typename nil::actor::zk::commitments::fri<BlueprintFieldType, typename placeholder_params::merkle_hash_type,
                                                             typename placeholder_params::transcript_hash_type, Lambda, 2, 4>;
             using FRIParamsType = typename FRIScheme::params_type;
 
@@ -205,23 +208,23 @@ namespace nil {
             std::size_t permutation_size =
                 table_description.witness_columns + table_description.public_input_columns + table_description.constant_columns;
 
-            typename nil::crypto3::zk::snark::placeholder_public_preprocessor<
+            typename nil::actor::zk::snark::placeholder_public_preprocessor<
                 BlueprintFieldType, placeholder_params>::preprocessed_data_type public_preprocessed_data =
                 nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params>::process(
                     constraint_system, assignment_table.public_table(), table_description, fri_params, permutation_size);
-            typename nil::crypto3::zk::snark::placeholder_private_preprocessor<
+            typename nil::actor::zk::snark::placeholder_private_preprocessor<
                 BlueprintFieldType, placeholder_params>::preprocessed_data_type private_preprocessed_data =
                 nil::crypto3::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params>::process(
                     constraint_system, assignment_table.private_table(), table_description, fri_params
                 );
 
-            using ProofType = nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>;
-            ProofType proof = nil::crypto3::zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params>::process(
+            using ProofType = nil::actor::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>;
+            ProofType proof = nil::actor::zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params>::process(
                 public_preprocessed_data, private_preprocessed_data, table_description, constraint_system, assignment_table,
                 fri_params);
 
             bool verifier_res =
-                nil::crypto3::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
+                nil::actor::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
                     public_preprocessed_data, proof, constraint_system, fri_params);
 
             if (verifier_res) {
