@@ -13,6 +13,7 @@ cmake_policy(SET CMP0042 NEW)
 cmake_policy(SET CMP0028 NEW)
 cmake_policy(SET CMP0057 NEW)
 
+find_package(Boost REQUIRED )
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
@@ -39,6 +40,9 @@ macro(cm_find_package NAME)
         set(${ARGV0}_FOUND ON CACHE BOOL "")
     endif()
 endmacro()
+
+
+
 
 option(BUILD_TESTS "Build unit tests" FALSE)
 option(BUILD_SHARED_LIBS "Build shared library" TRUE)
