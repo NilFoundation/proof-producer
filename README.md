@@ -13,3 +13,19 @@ ${ZKLLVM_BUILD:-build}/bin/assigner/assigner -b ${ZKLLVM_BUILD:-build}/examples/
 ```
 ./bin/proof-generator/proof-generator --circuit=./merkle_tree_sha2_256_circuit.crt --assignment-table=/balances_tree.tbl --proof=./proof.txt
 ```
+
+## Toolchain Docker image
+
+Build an image:
+
+```bash
+docker build -t ghcr.io/nilfoundation/toolchain:0.1.7 -t ghcr.io/nilfoundation/toolchain:latest .
+```
+
+Push it to the registry:
+
+```bash
+docker login ghcr.io
+docker push ghcr.io/nilfoundation/toolchain:0.1.7 
+docker push ghcr.io/nilfoundation/toolchain:latest
+```
