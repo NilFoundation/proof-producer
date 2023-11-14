@@ -13,3 +13,21 @@
 [submodule "libs/application"]
 	path = libs/application
 	url = ../../NilFoundation/application.git
+[submodule "libs/actor/core"]
+	path = libs/actor/core
+	url = ../../NilFoundation/actor-core.git
+[submodule "libs/actor/math"]
+	path = libs/actor/math
+	url = ../../NilFoundation/actor-math.git
+[submodule "libs/actor/network"]
+	path = libs/actor/network
+	url = ../../NilFoundation/actor-network.git
+[submodule "libs/actor/zk"]
+	path = libs/actor/zk
+	url = ../../NilFoundation/actor-zk.git
+[submodule "libs/actor/blueprint"]
+	path = libs/actor/blueprint
+	url = ../../NilFoundation/actor-blueprint.git
+[submodule "libs/actor/container"]
+	path = libs/actor/container
+	url = ../../NilFoundation/actor-containers.git

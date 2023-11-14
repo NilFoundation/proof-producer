@@ -14,7 +14,7 @@ cm_find_package(CM)
 include(CMDeploy)
 include(CMSetupVersion)
 
-cm_project(proof-generator WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES ASM C CXX)
+cm_project(proof-generator-multithreaded WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES ASM C CXX)
 
 option(ZK_PLACEHOLDER_PROFILING_ENABLED "Build with placeholder profiling" FALSE)
 option(ZK_PLACEHOLDER_DEBUG_ENABLED "Build with placeholder testing inside" FALSE)
@@ -27,8 +27,11 @@ if(ZK_PLACEHOLDER_DEBUG)
     add_definitions(-DZK_PLACEHOLDER_DEBUG_ENABLED)
 endif()
 
-#find_package(Boost COMPONENTS REQUIRED filesystem log log_setup program_options thread system)
-#set(Boost_LIBRARIES boost_random boost_program_options)
+
+find_package(Boost COMPONENTS REQUIRED filesystem log log_setup program_options thread system)
+include_directories(${Boost_INCLUDE_DIRS})
+
+
 
 if (NOT Boost_FOUND AND NOT CMAKE_CROSSCOMPILING)
     find_package(Boost COMPONENTS REQUIRED filesystem log log_setup program_options thread system)
@@ -77,8 +80,7 @@ set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED TRUE)
 
-target_link_libraries(${CURRENT_PROJECT_NAME}
-
+list(APPEND libraries
         crypto3::algebra
         crypto3::block
         crypto3::codec
@@ -96,10 +98,22 @@ target_link_libraries(${CURRENT_PROJECT_NAME}
         dbms::plugin
         boost::application
 
+        actor::core
+        actor::containers
+        actor::network
+        actor::math
+        actor::zk
+
         Boost::filesystem
         Boost::log
         Boost::thread
 )
+
+if (NOT (UNIX AND (CMAKE_SYSTEM_NAME STREQUAL "Linux")))
+    list(APPEND libraries epoll-shim)
+endif ()
+
+target_link_libraries(${CURRENT_PROJECT_NAME} ${libraries})
 
 target_include_directories(${CURRENT_PROJECT_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
