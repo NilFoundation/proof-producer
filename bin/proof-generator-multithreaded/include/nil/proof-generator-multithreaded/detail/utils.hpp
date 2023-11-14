@@ -16,14 +16,17 @@
 // limitations under the License.
 //---------------------------------------------------------------------------//
 
-#ifndef PROOF_GENERATOR_DETAIL_UTILS_HPP
-#define PROOF_GENERATOR_DETAIL_UTILS_HPP
-
-#include <nil/marshalling/endianness.hpp>
-#include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
-#include <nil/marshalling/status_type.hpp>
+#ifndef PROOF_GENERATOR_MULTITHREADEDDETAIL_UTILS_HPP
+#define PROOF_GENERATOR_MULTITHREADEDDETAIL_UTILS_HPP
 
 #include <fstream>
+
+#include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
+#include <nil/marshalling/endianness.hpp>
+#include <nil/marshalling/status_type.hpp>
+
+#include <nil/actor/zk/snark/systems/plonk/placeholder/proof.hpp>
+
 
 namespace nil {
     namespace proof_generator {
@@ -44,7 +47,7 @@ namespace nil {
             using namespace nil::crypto3::marshalling;
 
             using TTypeBase = nil::marshalling::field_type<Endianness>;
-            using proof_marshalling_type = nil::crypto3::zk::snark::placeholder_proof<TTypeBase, Proof>;
+            using proof_marshalling_type = nil::actor::zk::snark::placeholder_proof<TTypeBase, Proof>;
             auto filled_placeholder_proof =
                 crypto3::marshalling::types::fill_placeholder_proof<Endianness, Proof>(proof, params);
 

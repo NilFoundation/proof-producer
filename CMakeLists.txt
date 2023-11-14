@@ -13,7 +13,6 @@ cmake_policy(SET CMP0042 NEW)
 cmake_policy(SET CMP0028 NEW)
 cmake_policy(SET CMP0057 NEW)
 
-
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
     set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
@@ -26,6 +25,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake"
 include(CMConfig)
 include(CMDeploy)
 include(CMSetupVersion)
+include_directories(${Boost_INCLUDE_DIRS})
 
 cm_workspace(proof-producer)
 
@@ -51,3 +51,4 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/module")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/plugin")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/application")
+add_subdirectories("${CMAKE_CURRENT_LIST_DIR}/libs/actor")
