@@ -47,11 +47,6 @@
 #include <nil/marshalling/field_type.hpp>
 #include <nil/marshalling/endianness.hpp>
 
-#include <nil/blueprint/basic_non_native_policy.hpp>
-#include <nil/blueprint/utils/satisfiability_check.hpp>
-
-#include <nil/blueprint/transpiler/table_profiling.hpp>
-
 #include <nil/proof-generator/detail/utils.hpp>
 
 
