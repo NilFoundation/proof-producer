@@ -1,8 +1,12 @@
 name: Build
 
 on:
+  pull_request:
   push:
-    branches: [ 8-add-ci ]
+    branches:
+      - 'master'
+    tags:
+      - '**'
 
 jobs:
   build-linux:
@@ -83,4 +87,45 @@ jobs:
         run: |
             cd build 
             make
-            
+            cd ..
+
+      - name: Create .deb package
+        # always build deb packages to check that they're buildable
+        # although, push them only on tags (see later)
+        run: |
+          mkdir -p .debpkg/usr/bin
+          cp ./build/bin/proof-generator/proof-generator .debpkg/usr/bin
+
+          chmod +x .debpkg/usr/bin/proof-generator
+          mkdir -p .debpkg/DEBIAN
+
+      - uses: jiro4989/build-deb-action@v3
+        with:
+          package: proof-generator
+          package_root: .debpkg
+          maintainer: =nil; Foundation
+          version:  0.1
+          arch: 'amd64'
+          desc: 'zkllvm proof-generator'
+
+      - name: Install aws tools
+        # these steps run only on tag push => deb package release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          ./aws/install
+          pip3 install mkrepo
+
+      - name: Upload packages to repository
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        env:
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+        run: |
+          PROOF_GENERATOR_PACKAGE=`ls proof-generator*.deb | cut -d'/' -f2`
+          POOL="ubuntu/pool/main/p/proof-generator"
+          aws s3api put-object --bucket deb.nil.foundation --key $POOL/$PROOF_GENERATOR_PACKAGE --body $PROOF_GENERATOR_PACKAGE
+          mkrepo s3://deb.nil.foundation/ubuntu/
+  
