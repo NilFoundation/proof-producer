@@ -73,6 +73,11 @@ jobs:
             toolset: gcc
             arch: x86
 
+      - name: Set VERSION variable
+        # required for building deb packages
+        # TODO: replace with getting version from git tag or commit SHA1
+        run: echo "VERSION=$(cat VERSION)" >> $GITHUB_ENV
+
       - name: Configure CMake
         env:
           BOOST_ROOT: "${{ steps.install-boost.outputs.BOOST_ROOT }}"
@@ -104,7 +109,7 @@ jobs:
           package: proof-generator
           package_root: .debpkg
           maintainer: =nil; Foundation
-          version:  0.1
+          version:  ${{ env.VERSION }}
           arch: 'amd64'
           desc: 'zkllvm proof-generator'
 
