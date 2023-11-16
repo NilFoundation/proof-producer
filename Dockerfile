@@ -19,3 +19,4 @@ RUN DEBIAN_FRONTEND=noninteractive \
     && mkdir /root/.config \
     && touch /root/.config/config.ini
 
+WORKDIR /opt/zkllvm-project
