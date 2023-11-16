@@ -24,3 +24,5 @@ RUN DEBIAN_FRONTEND=noninteractive \
       zkllvm=${ZKLLVM_VERSION} \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/zkllvm-template
