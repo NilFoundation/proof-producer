@@ -22,3 +22,40 @@ written to disk in this case. To skip verification (and write the file unconditi
 ```
 ./bin/proof-generator/proof-generator --circuit=./merkle_tree_sha2_256_circuit.crt --assignment-table=/balances_tree.tbl --proof=./proof.txt --skip-verification
 ```
+
+# Releases
+
+## DEB packages
+
+Building DEB packages is tested on every CI run.
+This way developers can be sure that their code can be built to a package
+before they merge it.
+
+To make a DEB release:
+
+1.  Update the version in the `VERSION` file, for example, `v0.42.0`.
+2.  Push this commit to the `master` branch.
+3.  Push a tag on this commit, named same as the version:
+
+    ```
+    git tag v0.42.0
+    git push origin v0.42.0
+    ```
+
+4.  Wait for CI to build and publish the package.
+
+## Toolchain Docker image
+
+Build an image:
+
+```bash
+docker build -t ghcr.io/nilfoundation/toolchain:0.1.7 -t ghcr.io/nilfoundation/toolchain:latest .
+```
+
+Push it to the registry:
+
+```bash
+docker login ghcr.io
+docker push ghcr.io/nilfoundation/toolchain:0.1.7 
+docker push ghcr.io/nilfoundation/toolchain:latest
+```

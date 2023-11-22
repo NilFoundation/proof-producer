@@ -13,9 +13,3 @@
 [submodule "libs/application"]
 	path = libs/application
 	url = ../../NilFoundation/application.git
-[submodule "libs/blueprint"]
-	path = libs/blueprint
-	url = ../../NilFoundation/zkllvm-blueprint.git
-[submodule "libs/transpiler"]
-	path = libs/transpiler
-	url = ../../NilFoundation/zkllvm-transpiler.git

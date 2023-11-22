@@ -47,11 +47,6 @@
 #include <nil/marshalling/field_type.hpp>
 #include <nil/marshalling/endianness.hpp>
 
-#include <nil/blueprint/basic_non_native_policy.hpp>
-#include <nil/blueprint/utils/satisfiability_check.hpp>
-
-#include <nil/blueprint/transpiler/table_profiling.hpp>
-
 #include <nil/proof-generator/detail/utils.hpp>
 
 
@@ -202,7 +197,7 @@ namespace nil {
                 table_description.rows_amount = assignment_table.rows_amount();
             }
 
-            const std::size_t Lambda = 2;
+            const std::size_t Lambda = 9;
             using Hash = nil::crypto3::hashes::keccak_1600<256>;
             using circuit_params = nil::crypto3::zk::snark::placeholder_circuit_params<
                 BlueprintFieldType, ArithmetizationParams
