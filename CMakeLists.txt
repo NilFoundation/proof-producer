@@ -26,6 +26,7 @@ include(CMConfig)
 include(CMDeploy)
 include(CMSetupVersion)
 include_directories(${Boost_INCLUDE_DIRS})
+set(Boost_USE_STATIC_LIBS ON)  # Someday linking started to fail, this fixed it
 
 cm_workspace(proof-producer)
 
@@ -43,9 +44,8 @@ endmacro()
 option(BUILD_TESTS "Build unit tests" FALSE)
 option(BUILD_SHARED_LIBS "Build shared library" TRUE)
 
-set(Boost_USE_STATIC_LIBS ON)  # Someday linking started to fail in GH, this fixed it
-
 add_subdirectories("${CMAKE_CURRENT_LIST_DIR}/bin")
+
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3")
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/module")
