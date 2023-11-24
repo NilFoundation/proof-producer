@@ -10,11 +10,19 @@ get_script_dir() {
 make_proof_for_pair() {
     local tbl_file=$1
     local crct_file="${tbl_file%assignment.tbl}circuit.crct"
-    local proof_dir=$(dirname "$tbl_file")
+    local relative_path="$(realpath --relative-to="$base_dir" "$tbl_file")"
+    # Updated to use the specified output directory
+    local proof_dir="${output_dir}/$(dirname ${relative_path})"
+
+    local proof_generator_binary="${script_dir}/../build/bin/proof-generator/proof-generator"
+    if [ "$use_multithreaded" = true ]; then
+        proof_generator_binary="${script_dir}/../build/bin/proof-generator-multithreaded/proof-generator-multithreaded"
+    fi
 
     if [ -f "$crct_file" ]; then
-        echo -n "Processing $tbl_file and $crct_file: "
-        if ${script_dir}/../build/bin/proof-generator/proof-generator -t "$tbl_file" --circuit "$crct_file" --proof "$proof_dir/proof.bin"; then
+        mkdir -p "$proof_dir"  # Ensure the output directory exists
+        echo -n "Processing $tbl_file and $crct_file (proof will be at $relative_path): "
+        if $proof_generator_binary -t "$tbl_file" --circuit "$crct_file" --proof "$proof_dir/proof.bin"; then
             color_green "success"
         else
             color_red "failed"
@@ -28,18 +36,28 @@ make_proof_for_pair() {
 
 clean_up() {
     echo "Cleaning up proof files..."
-    find . -name 'proof' -type f -exec rm {} +
+    find "$output_dir" -name 'proof' -type f -exec rm {} +
 }
 
 parse_args() {
     base_dir="."
+    output_dir=""
     targets=()
+    use_multithreaded=false
 
     while [ "$#" -gt 0 ]; do
         case "$1" in
             --base-dir)
                 base_dir="$2"
                 shift 2
+                ;;
+            --output-dir)
+                output_dir="$2"
+                shift 2
+                ;;
+            --multithreaded)
+                use_multithreaded=true
+                shift
                 ;;
             *)
                 targets+=("$1")  # Add remaining arguments as targets
@@ -53,6 +71,12 @@ exit_code=0
 script_dir=$(get_script_dir)
 clean=false
 parse_args "$@"
+
+# Validate output directory
+if [ -z "$output_dir" ]; then
+    echo "Output directory not specified. Using default."
+    output_dir=$base_dir
+fi
 
 # Function to process files in a directory
 process_directory() {

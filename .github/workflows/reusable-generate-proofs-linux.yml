@@ -24,11 +24,16 @@ on:
         description: "Proofs will be merged into input artifact and uploaded into another artifact with this name"
         required: false
         default: "proofs"
+      multithreaded:
+        type: boolean
+        description: "Use multithreaded producer"
+        required: false
+        default: false
       boost-version:
         type: string
         description: "Version of Boost to install"
         required: false
-        default: '1.81.0'
+        default: '1.82.0'
 
     outputs:
       artifact-name:
@@ -38,6 +43,7 @@ on:
 
 jobs:
   build-and-test:
+    name: Build prover, prove provided circuits
     runs-on: ubuntu-22.04
     strategy:
       matrix:
@@ -56,10 +62,23 @@ jobs:
             build-essential \
             libssl-dev \
             cmake \
-            git \
             libicu-dev \
-            curl \
-            libspdlog-dev
+            libspdlog-dev \
+            liblz4-dev \
+            libgnutls28-dev \
+            libprotobuf-dev \
+            libyaml-cpp-dev \
+            libsctp-dev \
+            ragel \
+            xfslibs-dev \
+            systemtap-sdt-dev \
+            libc-ares-dev \
+            libhwloc-dev
+
+          # https://github.com/actions/runner-images/issues/8659#issuecomment-1853177960
+          sudo apt-get install --allow-downgrades \
+            libstdc++6=12.3.0-1ubuntu1~22.04 \
+            libgcc-s1=12.3.0-1ubuntu1~22.04
 
       - name: Print toolchain information
         run: |
@@ -130,7 +149,7 @@ jobs:
       - name: Build proof-producer
         working-directory: ${{ steps.strings.outputs.build-dir }}
         run: |
-          make -j $(nproc)
+          make
 
       - name: List artifacts
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
@@ -139,9 +158,13 @@ jobs:
       - name: Make proofs for pairs
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
         run: |
+          extra_args=""
+          if [[ "${{ inputs.multithreaded }}" == "true" ]]; then
+            extra_args="--multithreaded "
+          fi
           targets_str=$(echo "${{ inputs.targets }}" | awk '{$1=$1};1' | sed '/^$/d' | tr '\n' ' ' | sed 's/ $//')
           echo "targets from input: ${targets_str}"
-          ${{ github.workspace }}/tests/make_proof_for_pairs.sh ${targets_str}
+          ${{ github.workspace }}/tests/make_proof_for_pairs.sh ${extra_args} ${targets_str}
 
       - name: Remove all except proof.bin files
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
