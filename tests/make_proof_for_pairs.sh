@@ -57,11 +57,11 @@ parse_args "$@"
 # Function to process files in a directory
 process_directory() {
     local dir=$1
-    find "$dir" -name 'assignment.tbl' | while read tbl_file; do
+    while read tbl_file; do
         if ! make_proof_for_pair "$tbl_file"; then
             exit_code=1
         fi
-    done
+    done < <(find "$dir" -name 'assignment.tbl')
 }
 
 # If targets are specified
