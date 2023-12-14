@@ -109,9 +109,7 @@ struct prover {
 
         boost::filesystem::path proof_file = context_.find<nil::proof_generator::aspects::prover_vanilla>()->output_proof_file_path();
 
-        nil::proof_generator::prover(circuit_file_path, assignment_file_path, proof_file);
-
-        return 0;
+        return nil::proof_generator::prover(circuit_file_path, assignment_file_path, proof_file) ? 0 : 1;
     }
 
     boost::application::context &context_;

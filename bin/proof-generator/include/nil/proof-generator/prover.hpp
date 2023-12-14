@@ -112,10 +112,10 @@ namespace nil {
                     expand_factor
                 );
             }
-        
+
         }    // namespace detail
 
-        void prover(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file) {
+        bool prover(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file) {
             using curve_type = nil::crypto3::algebra::curves::pallas;
             using BlueprintFieldType = typename curve_type::base_field_type;
             constexpr std::size_t WitnessColumns = 15;
@@ -149,12 +149,12 @@ namespace nil {
                 ifile.open(circuit_file_name);
                 if (!ifile.is_open()) {
                     std::cout << "Cannot find input file " << circuit_file_name << std::endl;
-                    return;
+                    return false;
                 }
                 std::vector<std::uint8_t> v;
                 if (!proof_generator::detail::read_buffer_from_file(ifile, v)) {
                     std::cout << "Cannot parse input file " << circuit_file_name << std::endl;
-                    return;
+                    return false;
                 }
                 ifile.close();
 
@@ -173,12 +173,12 @@ namespace nil {
                 iassignment.open(assignment_table_file_name);
                 if (!iassignment) {
                     std::cout << "Cannot open " << assignment_table_file_name << std::endl;
-                    return;
+                    return false;
                 }
                 std::vector<std::uint8_t> v;
                 if (!proof_generator::detail::read_buffer_from_file(iassignment, v)) {
                     std::cout << "Cannot parse input file " << assignment_table_file_name << std::endl;
-                    return;
+                    return false;
                 }
                 iassignment.close();
                 table_value_marshalling_type marshalled_table_data;
@@ -251,7 +251,7 @@ namespace nil {
 
                 if (!verification_result) {
                     std::cout << "Something went wrong - proof is not verified" << std::endl;
-                    return;
+                    return false;
                 }
 
                 std::cout << "Proof is verified" << std::endl;
@@ -261,6 +261,7 @@ namespace nil {
                     nil::crypto3::marshalling::types::fill_placeholder_proof<Endianness, ProofType>(proof);
                 proof_print<Endianness, ProofType>(proof, proof_file);
                 std::cout << "Proof written" << std::endl;
+                return true;
             }
         }
     }        // namespace proof_generator
