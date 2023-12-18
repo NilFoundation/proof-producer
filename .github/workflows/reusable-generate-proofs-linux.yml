@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       refs:
-        description: "Multiline arg with modules' repo names and refs (e.g. `org/repo: ref`)"
+        description: "Multiline arg with modules' repo names and refs (e.g. `org/repo: ref`). Used for SyncWith handling"
         type: string
         required: false
       targets:
@@ -28,16 +28,9 @@ on:
         type: string
         description: "Version of Boost to install"
         required: false
-        default: '1.81.0' # The least version supported by both matrix.os
+        default: '1.81.0'
 
       # Matrix parameters
-      os:
-        description: 'List of operating systems to run the workflow on (one per line)'
-        required: false
-        type: string
-        default: |
-          ubuntu-22.04
-        # macos-12
       cpp-compiler:
         description: 'List of C++ compilers to use for building (one per line)'
         required: false
@@ -62,7 +55,6 @@ jobs:
   setup-matrix:
     runs-on: ubuntu-latest
     outputs:
-      os: ${{ steps.set-matrix-outputs.outputs.os }}
       cpp-compiler: ${{ steps.set-matrix-outputs.outputs.cpp-compiler }}
       build-type: ${{ steps.set-matrix-outputs.outputs.build-type }}
     steps:
@@ -73,21 +65,18 @@ jobs:
             echo "$1" | sed '/^\s*$/d' | jq -R -s -c 'split("\n") | if last == "" then .[:-1] else . end'
           }
 
-          os=$(process_input "${{ inputs.os }}")
           cpp_compiler=$(process_input "${{ inputs.cpp-compiler }}")
           build_type=$(process_input "${{ inputs.build-type }}")
 
-          echo "os=${os}" >> $GITHUB_OUTPUT
           echo "cpp-compiler=${cpp_compiler}" >> $GITHUB_OUTPUT
           echo "build-type=${build_type}" >> $GITHUB_OUTPUT
 
 
   build-and-test:
     needs: setup-matrix
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        os: ${{fromJson(needs.setup-matrix.outputs.os)}}
         cpp_compiler: ${{fromJson(needs.setup-matrix.outputs.cpp-compiler)}}
         build_type: ${{fromJson(needs.setup-matrix.outputs.build-type)}}
       fail-fast: false
@@ -159,7 +148,6 @@ jobs:
         id: install-boost
         with:
           boost_version: ${{ inputs.boost-version }}
-          # Extract version number from matrix.os by replacing os_name-
           # A list of supported versions can be found here:
           # https://github.com/MarkusJx/prebuilt-boost/blob/main/versions-manifest.json
           platform_version: ${{ steps.strings.outputs.platform-version }}
