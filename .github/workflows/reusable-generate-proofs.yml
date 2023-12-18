@@ -19,6 +19,11 @@ on:
         type: string
         description: "Targets you want to craete proofs to. If empty, all target will be used"
         required: false
+      output-artifact-name:
+        type: string
+        description: "Proofs will be merged into input artifact and uploaded into another artifact with this name"
+        required: false
+        default: "proofs"
       boost-version:
         type: string
         description: "Version of Boost to install"
@@ -88,9 +93,6 @@ jobs:
       fail-fast: false
     outputs:
       artifact-name: ${{ steps.set-artifact-name.outputs.artifact-name }}
-
-    env:
-      PROOF_ARTIFACT_NAME: proofs
 
     steps:
       - name: Install dependencies
@@ -188,15 +190,15 @@ jobs:
           echo "targets from input: ${targets_str}"
           ${{ github.workspace }}/tests/make_proof_for_pairs.sh ${targets_str}
 
-      # Artifacts from different matrix combinations will overwrite each other, but who cares
-      - name: Upload circuits, assignments and proofs artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.PROOF_ARTIFACT_NAME }}
-          path: |
-            ${{ steps.strings.outputs.artifact-dir }}
-
       - name: Set artifact name output
         id: set-artifact-name
         run: |
-          echo "artifact-name=${{ env.PROOF_ARTIFACT_NAME }}" >> $GITHUB_OUTPUT
+          echo "artifact-name=${{ inputs.output-artifact-name }}" >> $GITHUB_OUTPUT
+
+      # Artifacts from different matrix combinations will overwrite each other
+      - name: Upload circuits, assignments and proofs artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.set-artifact-name.outputs.artifact-name }}
+          path: |
+            ${{ steps.strings.outputs.artifact-dir }}
