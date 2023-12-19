@@ -9,9 +9,21 @@ on:
       - '**'
 
 jobs:
+  handle-syncwith:
+    if: github.event_name == 'pull_request'
+    name: Call Reusable SyncWith Handler
+    uses: NilFoundation/ci-cd/.github/workflows/reusable-handle-syncwith.yml@v1.1.2
+    with:
+      ci-cd-ref: 'v1.1.2'
+    secrets: inherit
+
+    
   build-linux:
     runs-on: [ "self-hosted", "aws_autoscaling"]
 
+    needs:
+      - handle-syncwith
+      
     env:
       CONTAINER_TMP: /opt/
       HOST_TMP: /home/runner/work/_temp/
@@ -50,6 +62,16 @@ jobs:
         with:
           submodules: 'recursive'
           fetch-depth: 0
+
+      - name: Checkout modules to specified refs
+        if: needs.handle-syncwith.outputs.prs-refs != ''
+        uses: NilFoundation/ci-cd/actions/recursive-checkout@v1.1.2
+        # TODO: figure out the mapping of volumes and use variable here, not hardcoded path
+        with:
+          paths: |
+            /__w/proof-producer/proof-producer/**
+            !/__w/proof-producer/proof-producer/**/.git/**
+          refs: ${{ needs.handle-syncwith.outputs.prs-refs }}
           
       - name: Install Python
         uses: actions/setup-python@v4
