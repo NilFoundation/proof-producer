@@ -30,21 +30,6 @@ on:
         required: false
         default: '1.81.0'
 
-      # Matrix parameters
-      cpp-compiler:
-        description: 'List of C++ compilers to use for building (one per line)'
-        required: false
-        type: string
-        default: |
-          g++
-          clang++
-      build-type:
-        description: 'Build type (e.g., Release, Debug, one per line)'
-        required: false
-        type: string
-        default: |
-          Release
-
     outputs:
       artifact-name:
         description: "The name of the artifact with circuits, assignments and proofs"
@@ -52,33 +37,12 @@ on:
 
 
 jobs:
-  setup-matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      cpp-compiler: ${{ steps.set-matrix-outputs.outputs.cpp-compiler }}
-      build-type: ${{ steps.set-matrix-outputs.outputs.build-type }}
-    steps:
-      - name: Set up job matrix outputs
-        id: set-matrix-outputs
-        run: |
-          process_input() {
-            echo "$1" | sed '/^\s*$/d' | jq -R -s -c 'split("\n") | if last == "" then .[:-1] else . end'
-          }
-
-          cpp_compiler=$(process_input "${{ inputs.cpp-compiler }}")
-          build_type=$(process_input "${{ inputs.build-type }}")
-
-          echo "cpp-compiler=${cpp_compiler}" >> $GITHUB_OUTPUT
-          echo "build-type=${build_type}" >> $GITHUB_OUTPUT
-
-
   build-and-test:
-    needs: setup-matrix
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        cpp_compiler: ${{fromJson(needs.setup-matrix.outputs.cpp-compiler)}}
-        build_type: ${{fromJson(needs.setup-matrix.outputs.build-type)}}
+        cpp-compiler: [ g++, clang++ ]
+        build-type: [ Release ]
       fail-fast: false
     outputs:
       artifact-name: ${{ steps.set-artifact-name.outputs.artifact-name }}
@@ -160,7 +124,8 @@ jobs:
           cmake \
             -G "Unix Makefiles" \
             -B build \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_CXX_COMPILER=${{ matrix.cpp-compiler }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
 
       - name: Build proof-producer
         working-directory: ${{ steps.strings.outputs.build-dir }}
@@ -178,13 +143,19 @@ jobs:
           echo "targets from input: ${targets_str}"
           ${{ github.workspace }}/tests/make_proof_for_pairs.sh ${targets_str}
 
+      - name: Remove all except proof.bin files
+        working-directory: ${{ steps.strings.outputs.artifact-dir }}
+        run: |
+          find . -type f ! -name 'proof.bin' -exec rm {} +
+
       - name: Set artifact name output
         id: set-artifact-name
         run: |
           echo "artifact-name=${{ inputs.output-artifact-name }}" >> $GITHUB_OUTPUT
 
-      # Artifacts from different matrix combinations will overwrite each other
       - name: Upload circuits, assignments and proofs artifact
+        # Only from a single matrix configuration. Assuming everyone produce the same results if not failed.
+        if: matrix.cpp-compiler == 'g++' && matrix.build-type == 'Release'
         uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.set-artifact-name.outputs.artifact-name }}
