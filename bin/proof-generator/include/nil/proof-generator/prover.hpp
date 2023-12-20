@@ -23,7 +23,12 @@
 #include <fstream>
 #include <random>
 
+// TODO: remove this. Required only because of an incorrect assert check in zk
 #include <boost/test/unit_test.hpp>
+
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
 
 #include <nil/crypto3/algebra/curves/pallas.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
@@ -48,7 +53,6 @@
 #include <nil/marshalling/endianness.hpp>
 
 #include <nil/proof-generator/detail/utils.hpp>
-
 
 namespace nil {
     namespace proof_generator {
@@ -91,7 +95,7 @@ namespace nil {
 
         }    // namespace detail
 
-        bool prover(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file) {
+        bool prover(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file, bool skip_verification) {
             using curve_type = nil::crypto3::algebra::curves::pallas;
             using BlueprintFieldType = typename curve_type::base_field_type;
             constexpr std::size_t WitnessColumns = 15;
@@ -124,7 +128,7 @@ namespace nil {
                 std::ifstream ifile;
                 ifile.open(circuit_file_name, std::ios_base::binary | std::ios_base::in);
                 if (!ifile.is_open()) {
-                    std::cout << "Cannot find input file " << circuit_file_name << std::endl;
+                    BOOST_LOG_TRIVIAL(error) << "Cannot find input file " << circuit_file_name;
                     return false;
                 }
 
@@ -135,7 +139,7 @@ namespace nil {
                 ifile.seekg(0, std::ios_base::beg);
                 ifile.read(reinterpret_cast<char*>(v.data()), fsize);
                 if (!ifile) {
-                    std::cout << "Cannot parse input file " << circuit_file_name << std::endl;
+                    BOOST_LOG_TRIVIAL(error) << "Cannot parse input file " << circuit_file_name;
                     return false;
                 }
                 ifile.close();
@@ -154,7 +158,7 @@ namespace nil {
                 std::ifstream iassignment;
                 iassignment.open(assignment_table_file_name, std::ios_base::binary | std::ios_base::in);
                 if (!iassignment) {
-                    std::cout << "Cannot open " << assignment_table_file_name << std::endl;
+                    BOOST_LOG_TRIVIAL(error) << "Cannot open " << assignment_table_file_name;
                     return false;
                 }
                 std::vector<std::uint8_t> v;
@@ -164,7 +168,7 @@ namespace nil {
                 iassignment.seekg(0, std::ios_base::beg);
                 iassignment.read(reinterpret_cast<char*>(v.data()), fsize);
                 if (!iassignment) {
-                    std::cout << "Cannot parse input file " << assignment_table_file_name << std::endl;
+                    BOOST_LOG_TRIVIAL(error) << "Cannot parse input file " << assignment_table_file_name;
                     return false;
                 }
                 iassignment.close();
@@ -201,13 +205,13 @@ namespace nil {
                 table_description.witness_columns + table_description.public_input_columns + table_description.constant_columns;
             lpc_scheme_type lpc_scheme(fri_params);
 
-            std::cout << "Preprocessing public data..." << std::endl;
+            BOOST_LOG_TRIVIAL(info) << "Preprocessing public data..." << std::endl;
             typename nil::crypto3::zk::snark::placeholder_public_preprocessor<
                 BlueprintFieldType, placeholder_params>::preprocessed_data_type public_preprocessed_data =
             nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params>::process(
                 constraint_system, assignment_table.public_table(), table_description, lpc_scheme, permutation_size);
 
-            std::cout << "Preprocessing private data..." << std::endl;
+            BOOST_LOG_TRIVIAL(info) << "Preprocessing private data..." << std::endl;
             typename nil::crypto3::zk::snark::placeholder_private_preprocessor<
                 BlueprintFieldType, placeholder_params>::preprocessed_data_type private_preprocessed_data =
                 nil::crypto3::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params>::process(
@@ -215,39 +219,44 @@ namespace nil {
                 );
 
             if (constraint_system.num_gates() == 0){
-                std::cout << "Generating proof (zero gates)..." << std::endl;
-                std::cout << "Proof generated" << std::endl;
-                std::cout << "Writing proof to " << proof_file << "..." << std::endl;
+                BOOST_LOG_TRIVIAL(info) << "Generating proof (zero gates)..." << std::endl;
+                BOOST_LOG_TRIVIAL(info) << "Proof generated" << std::endl;
+                BOOST_LOG_TRIVIAL(info) << "Writing proof to " << proof_file << "..." << std::endl;
                 std::fstream fs;
                 fs.open(proof_file, std::ios::out);
                 fs.close();
-                std::cout << "Proof written" << std::endl;
+                BOOST_LOG_TRIVIAL(info) << "Proof written" << std::endl;
             } else {
-                std::cout << "Generating proof..." << std::endl;
+                BOOST_LOG_TRIVIAL(info) << "Generating proof..." << std::endl;
                 using ProofType = nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>;
                 ProofType proof = nil::crypto3::zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params>::process(
                     public_preprocessed_data, private_preprocessed_data, table_description, constraint_system, assignment_table,
                     lpc_scheme);
-                std::cout << "Proof generated" << std::endl;
+                BOOST_LOG_TRIVIAL(info) << "Proof generated" << std::endl;
 
-                std::cout << "Verifying proof..." << std::endl;
-                bool verification_result =
-                    nil::crypto3::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
-                        public_preprocessed_data, proof, constraint_system, lpc_scheme
-                    );
 
-                if (!verification_result) {
-                    std::cout << "Something went wrong - proof is not verified" << std::endl;
-                    return false;
+                if (skip_verification) {
+                    BOOST_LOG_TRIVIAL(info) << "Skipping proof verification" << std::endl;
+                } else {
+                    BOOST_LOG_TRIVIAL(info) << "Verifying proof..." << std::endl;
+                    bool verification_result =
+                        nil::crypto3::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
+                            public_preprocessed_data, proof, constraint_system, lpc_scheme
+                        );
+
+                    if (!verification_result) {
+                        BOOST_LOG_TRIVIAL(error) << "Something went wrong - proof is not verified";
+                        return false;
+                    }
+
+                    BOOST_LOG_TRIVIAL(info) << "Proof is verified" << std::endl;
                 }
 
-                std::cout << "Proof is verified" << std::endl;
-
-                std::cout << "Writing proof to " << proof_file << "..." << std::endl;
+                BOOST_LOG_TRIVIAL(info) << "Writing proof to " << proof_file;
                 auto filled_placeholder_proof =
                     nil::crypto3::marshalling::types::fill_placeholder_proof<Endianness, ProofType>(proof);
                 proof_print<Endianness, ProofType>(proof, proof_file);
-                std::cout << "Proof written" << std::endl;
+                BOOST_LOG_TRIVIAL(info) << "Proof written";
                 return true;
             }
         }

@@ -45,7 +45,7 @@ namespace nil {
 
                 cli.add_options()
                     ("help,h", "Display available command-line configuration arguments")
-                    ("configuration-files,c", boost::program_options::value<std::vector<std::string>>()
+                    ("configuration-files", boost::program_options::value<std::vector<std::string>>()
                             ->default_value({(path_aspect->config_path() / "config.ini").string()}),
                         "Configuration files");
                 // clang-format on
