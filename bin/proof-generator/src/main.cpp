@@ -107,9 +107,11 @@ struct prover {
         boost::filesystem::path assignment_file_path =
             context_.find<nil::proof_generator::aspects::prover_vanilla>()->input_assignment_file_path();
 
+        bool skip_verification = context_.find<nil::proof_generator::aspects::prover_vanilla>()->is_skip_verification_mode_on();
+
         boost::filesystem::path proof_file = context_.find<nil::proof_generator::aspects::prover_vanilla>()->output_proof_file_path();
 
-        return nil::proof_generator::prover(circuit_file_path, assignment_file_path, proof_file) ? 0 : 1;
+        return nil::proof_generator::prover(circuit_file_path, assignment_file_path, proof_file, skip_verification) ? 0 : 1;
     }
 
     boost::application::context &context_;
