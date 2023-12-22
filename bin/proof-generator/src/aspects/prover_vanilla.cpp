@@ -14,8 +14,9 @@
 // along with this program. If not, see
 // <https://github.com/NilFoundation/dbms/blob/master/LICENSE_1_0.txt>.
 //---------------------------------------------------------------------------//
-
-#include <nil/proof-generator/aspects/prover_vanilla.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/trivial.hpp>
+#include <boost/log/expressions.hpp>
 
 #include <boost/exception/get_error_info.hpp>
 
@@ -23,6 +24,8 @@
 #include <boost/property_tree/ini_parser.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/filesystem.hpp>
+
+#include <nil/proof-generator/aspects/prover_vanilla.hpp>
 
 namespace std {
     template<typename CharT, typename TraitsT>
@@ -47,42 +50,74 @@ namespace nil {
                 ("version,v", "Display version")
                 ("proof", boost::program_options::value<std::string>(),"Output proof file")
                 ("circuit,c", boost::program_options::value<std::string>(), "Circuit input file")
-                ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file");
+                ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file")
+                ("log-level,l", boost::program_options::value<std::string>(), "Log level (trace, debug, info, warning, error, fatal)")
+                ("skip-verification", "If set - skips verifiyng step of the generated proof");
                 // clang-format on
                 cli.add(options);
             }
 
             void prover_vanilla::set_options(cfg_options_type &cfg) const {
-                boost::program_options::options_description options("NIL Proof Generator");
-                // clang-format off
-                options.add_options()
-                ("version,v", "Display version")
-                ("proof", boost::program_options::value<std::string>(),"Output proof file")
-                ("circuit,c", boost::program_options::value<std::string>(), "Circuit input file")
-                ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file");
-                // clang-format on
-                cfg.add(options);
             }
 
             void prover_vanilla::initialize(configuration_type &vm) {
+                std::string log_level = "info";
+                
+                if (vm.count("log-level")) {
+                    log_level = vm["log-level"].as<std::string>();
+                }
+
+                std::map<std::string, boost::log::trivial::severity_level> log_options{
+                    {"trace", boost::log::trivial::trace},
+                    {"debug", boost::log::trivial::debug},
+                    {"info", boost::log::trivial::info},
+                    {"warning", boost::log::trivial::warning},
+                    {"error", boost::log::trivial::error},
+                    {"fatal", boost::log::trivial::fatal}
+                };
+
+                if (log_options.find(log_level) == log_options.end()) {
+                    std::cerr << "Invalid command line argument -l (log level): " << log_level << std::endl;
+                    return;
+                }
+
+                boost::log::core::get()->set_filter(boost::log::trivial::severity >= log_options[log_level]);
+
                 if (vm.count("circuit")) {
                     if (vm["circuit"].as<std::string>().size() < PATH_MAX ||
                         vm["circuit"].as<std::string>().size() < FILENAME_MAX) {
                         if (boost::filesystem::exists(vm["circuit"].as<std::string>())) {
                             circuit_file_path = vm["circuit"].as<std::string>();
                         }
+                    } else {
+                        BOOST_LOG_TRIVIAL(error) << "Circuit file path is too long";
                     }
+                } else {
+                    BOOST_LOG_TRIVIAL(error) << "Circuit file path not specified";
                 }
+
                 if (vm.count("assignment-table")) {
                     if (vm["assignment-table"].as<std::string>().size() < PATH_MAX ||
                         vm["assignment-table"].as<std::string>().size() < FILENAME_MAX) {
                         if (boost::filesystem::exists(vm["assignment-table"].as<std::string>())) {
                             assignment_table_file_path = vm["assignment-table"].as<std::string>();
                         }
+                    } else {
+                        BOOST_LOG_TRIVIAL(error) << "Assignment table file path is too long";
                     }
+                } else {
+                    BOOST_LOG_TRIVIAL(error) << "Assignment table file path not specified";
                 }
+                
                 if (vm.count("proof")) {
                     proof_file_path = vm["proof"].as<std::string>();
+                } else {
+                    proof_file_path = path_aspect->current_path() / "proof.bin";
+                    BOOST_LOG_TRIVIAL(debug) << "Proof file path not specified, using default: " << proof_file_path;
+                }
+
+                if (vm.count("skip-verification")) {
+                    skip_verification = true;
                 }
             }
 
@@ -100,6 +135,10 @@ namespace nil {
 
             boost::filesystem::path prover_vanilla::output_proof_file_path() const {
                 return proof_file_path;
+            }
+
+            bool prover_vanilla::is_skip_verification_mode_on() const {
+                return skip_verification;
             }
         }    // namespace aspects
     }        // namespace proof_generator
