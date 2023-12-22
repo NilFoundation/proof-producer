@@ -48,11 +48,35 @@
 #include <nil/marshalling/endianness.hpp>
 
 #include <nil/proof-generator/detail/utils.hpp>
+#include <nil/proof-generator/recursive_json_generator.hpp>
 
 
 namespace nil {
     namespace proof_generator {
         namespace detail {
+            bool read_buffer_from_file(std::ifstream &ifile, std::vector<std::uint8_t> &v) {
+                char c;
+                char c1;
+                uint8_t b;
+
+                ifile >> c;
+                if (c != '0')
+                    return false;
+                ifile >> c;
+                if (c != 'x')
+                    return false;
+                while (ifile) {
+                    std::string str = "";
+                    ifile >> c >> c1;
+                    if (!isxdigit(c) || !isxdigit(c1))
+                        return false;
+                    str += c;
+                    str += c1;
+                    b = stoi(str, 0, 0x10);
+                    v.push_back(b);
+                }
+                return true;
+            }
 
             inline std::vector<std::size_t> generate_random_step_list(const std::size_t r, const int max_step) {
                 using dist_type = std::uniform_int_distribution<int>;
@@ -122,21 +146,15 @@ namespace nil {
             ConstraintSystemType constraint_system;
             {
                 std::ifstream ifile;
-                ifile.open(circuit_file_name, std::ios_base::binary | std::ios_base::in);
+                ifile.open(circuit_file_name);
                 if (!ifile.is_open()) {
                     std::cout << "Cannot find input file " << circuit_file_name << std::endl;
-                    return false;
+                    return 1;
                 }
-
                 std::vector<std::uint8_t> v;
-                ifile.seekg(0, std::ios_base::end);
-                const auto fsize = ifile.tellg();
-                v.resize(fsize);
-                ifile.seekg(0, std::ios_base::beg);
-                ifile.read(reinterpret_cast<char*>(v.data()), fsize);
-                if (!ifile) {
+                if (!detail::read_buffer_from_file(ifile, v)) {
                     std::cout << "Cannot parse input file " << circuit_file_name << std::endl;
-                    return false;
+                    return 1;
                 }
                 ifile.close();
 
@@ -152,20 +170,15 @@ namespace nil {
             AssignmentTableType assignment_table;
             {
                 std::ifstream iassignment;
-                iassignment.open(assignment_table_file_name, std::ios_base::binary | std::ios_base::in);
+                iassignment.open(assignment_table_file_name);
                 if (!iassignment) {
                     std::cout << "Cannot open " << assignment_table_file_name << std::endl;
-                    return false;
+                    return 1;
                 }
                 std::vector<std::uint8_t> v;
-                iassignment.seekg(0, std::ios_base::end);
-                const auto fsize = iassignment.tellg();
-                v.resize(fsize);
-                iassignment.seekg(0, std::ios_base::beg);
-                iassignment.read(reinterpret_cast<char*>(v.data()), fsize);
-                if (!iassignment) {
+                if (!detail::read_buffer_from_file(iassignment, v)) {
                     std::cout << "Cannot parse input file " << assignment_table_file_name << std::endl;
-                    return false;
+                    return 1;
                 }
                 iassignment.close();
                 table_value_marshalling_type marshalled_table_data;
@@ -248,6 +261,24 @@ namespace nil {
                     nil::crypto3::marshalling::types::fill_placeholder_proof<Endianness, ProofType>(proof);
                 proof_print<Endianness, ProofType>(proof, proof_file);
                 std::cout << "Proof written" << std::endl;
+
+
+                {
+                    constexpr std::array<std::size_t, PublicInputColumns> public_input_sizes = {50};
+
+                    proof_file.replace_extension(".json");
+                    std::ofstream output_file;
+                    output_file.open(proof_file);
+                    output_file << recursive_json_generator<
+                        placeholder_params,
+                        nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>,
+                        typename nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params>::preprocessed_data_type::common_data_type
+                    >::generate_input(
+                        public_preprocessed_data.common_data.vk, assignment_table.public_inputs(), proof, public_input_sizes
+                    );
+                    output_file.close();
+                    std::cout << "JSON written" << std::endl;
+                }
                 return true;
             }
         }
