@@ -54,30 +54,6 @@ namespace nil {
     namespace proof_generator {
         namespace detail {
 
-            bool read_buffer_from_file(std::ifstream &ifile, std::vector<std::uint8_t> &v) {
-                char c;
-                char c1;
-                uint8_t b;
-
-                ifile >> c;
-                if (c != '0')
-                    return false;
-                ifile >> c;
-                if (c != 'x')
-                    return false;
-                while (ifile) {
-                    std::string str = "";
-                    ifile >> c >> c1;
-                    if (!isxdigit(c) || !isxdigit(c1))
-                        return false;
-                    str += c;
-                    str += c1;
-                    b = stoi(str, 0, 0x10);
-                    v.push_back(b);
-                }
-                return true;
-            }
-
             inline std::vector<std::size_t> generate_random_step_list(const std::size_t r, const int max_step) {
                 using dist_type = std::uniform_int_distribution<int>;
                 static std::random_device random_engine;
@@ -146,13 +122,19 @@ namespace nil {
             ConstraintSystemType constraint_system;
             {
                 std::ifstream ifile;
-                ifile.open(circuit_file_name);
+                ifile.open(circuit_file_name, std::ios_base::binary | std::ios_base::in);
                 if (!ifile.is_open()) {
                     std::cout << "Cannot find input file " << circuit_file_name << std::endl;
                     return false;
                 }
+
                 std::vector<std::uint8_t> v;
-                if (!proof_generator::detail::read_buffer_from_file(ifile, v)) {
+                ifile.seekg(0, std::ios_base::end);
+                const auto fsize = ifile.tellg();
+                v.resize(fsize);
+                ifile.seekg(0, std::ios_base::beg);
+                ifile.read(reinterpret_cast<char*>(v.data()), fsize);
+                if (!ifile) {
                     std::cout << "Cannot parse input file " << circuit_file_name << std::endl;
                     return false;
                 }
@@ -170,13 +152,18 @@ namespace nil {
             AssignmentTableType assignment_table;
             {
                 std::ifstream iassignment;
-                iassignment.open(assignment_table_file_name);
+                iassignment.open(assignment_table_file_name, std::ios_base::binary | std::ios_base::in);
                 if (!iassignment) {
                     std::cout << "Cannot open " << assignment_table_file_name << std::endl;
                     return false;
                 }
                 std::vector<std::uint8_t> v;
-                if (!proof_generator::detail::read_buffer_from_file(iassignment, v)) {
+                iassignment.seekg(0, std::ios_base::end);
+                const auto fsize = iassignment.tellg();
+                v.resize(fsize);
+                iassignment.seekg(0, std::ios_base::beg);
+                iassignment.read(reinterpret_cast<char*>(v.data()), fsize);
+                if (!iassignment) {
                     std::cout << "Cannot parse input file " << assignment_table_file_name << std::endl;
                     return false;
                 }
