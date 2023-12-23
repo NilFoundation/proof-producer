@@ -248,15 +248,6 @@ namespace nil {
                 out << "[" << std::endl;
 
                 out << "\t{\"array\":[" << std::endl;
-                out << "\t\t" << generate_hash<typename PlaceholderParams::transcript_hash_type>(
-                    vk.constraint_system_hash
-                ) << "," << std::endl;
-                out << "\t\t" << generate_hash<typename PlaceholderParams::transcript_hash_type>(
-                    vk.fixed_values_commitment
-                ) << std::endl;
-                out << "\t]}," << std::endl;
-
-                out << "\t{\"array\":[" << std::endl;
                 std::size_t cur = 0;
                 for(std::size_t i = 0; i < arithmetization_params::public_input_columns; i++){
                     for(std::size_t j = 0; j < public_input_sizes[i]; j++){
@@ -266,6 +257,15 @@ namespace nil {
                     }
                 }
                 out << std::endl << "\t]}," << std::endl;
+
+                out << "\t{\"array\":[" << std::endl;
+                out << "\t\t" << generate_hash<typename PlaceholderParams::transcript_hash_type>(
+                    vk.constraint_system_hash
+                ) << "," << std::endl;
+                out << "\t\t" << generate_hash<typename PlaceholderParams::transcript_hash_type>(
+                    vk.fixed_values_commitment
+                ) << std::endl;
+                out << "\t]}," << std::endl;
 
                 out << "\t{\"struct\":[" << std::endl;
                 out << "\t\t{\"array\":[" << std::endl;
