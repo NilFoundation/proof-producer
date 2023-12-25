@@ -24,6 +24,9 @@ jobs:
     needs:
       - handle-syncwith
 
+    # skipped status occurs on push event
+    if: ${{ needs.handle-syncwith.result == 'success' || needs.handle-syncwith.result == 'skipped' }}
+
     env:
       CONTAINER_TMP: /opt/
       HOST_TMP: /home/runner/work/_temp/
