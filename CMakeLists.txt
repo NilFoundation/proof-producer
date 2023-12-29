@@ -47,8 +47,20 @@ option(BUILD_SHARED_LIBS "Build shared library" TRUE)
 add_subdirectories("${CMAKE_CURRENT_LIST_DIR}/bin")
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3")
+add_subdirectories("${CMAKE_CURRENT_LIST_DIR}/libs/actor")
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/module")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/plugin")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/application")
-add_subdirectories("${CMAKE_CURRENT_LIST_DIR}/libs/actor")
+
+set(CPACK_GENERATOR DEB)
+set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "=nil; Foundation")
+
+set(CPACK_PACKAGE_VERSION "0.1.1")
+
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/lib/zkllvm")
+
+install(SCRIPT cmake/create-symlinks.cmake)
+
+include(CPack)
