@@ -158,7 +158,7 @@ jobs:
       - name: Create release
         uses: ncipollo/release-action@v1
         with:
-          name: "proof-producer_-v${{ env.VERSION }}"
+          name: "proof-producer-v${{ env.VERSION }}"
           tag: "v${{ env.VERSION }}"
           artifacts: "build/proof-producer_*.deb"
 
