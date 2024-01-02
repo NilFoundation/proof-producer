@@ -1,0 +1,174 @@
+name: Make release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        type: choice
+        description: Release type
+        options:
+        - major
+        - minor
+        - patch
+        default: minor
+
+jobs:
+  handle-syncwith:
+    if: github.event_name == 'pull_request'
+    name: Call Reusable SyncWith Handler
+    uses: NilFoundation/ci-cd/.github/workflows/reusable-handle-syncwith.yml@v1.1.2
+    with:
+      ci-cd-ref: 'v1.1.2'
+    secrets: inherit
+
+
+  make-release-linux:
+    runs-on: [ "self-hosted", Linux, X64, "aws_autoscaling"]
+
+    env:
+      CONTAINER_TMP: /opt/
+      HOST_TMP: /home/runner/work/_temp/
+      DEBIAN_FRONTEND: noninteractive
+      BOOST_VERSION: "1.80.0"
+
+    container:
+      image: ubuntu:22.04
+      volumes:
+        - /home/runner/work/_temp/:/opt/
+
+    steps:
+      - name: Install dependencies
+        run: |
+          env && \
+          apt update && \
+          apt install -y \
+            build-essential \
+            libssl-dev \
+            cmake \
+            git \
+            unzip \
+            libicu-dev \
+            curl \
+            pkg-config \
+            wget \
+            \
+            libspdlog-dev \
+            liblz4-dev \
+            libgnutls28-dev \
+            libprotobuf-dev \
+            libyaml-cpp-dev \
+            libsctp-dev \
+            ragel \
+            xfslibs-dev \
+            systemtap-sdt-dev \
+            libc-ares-dev \
+            libhwloc-dev
+
+      - name: Print toolchain information
+        run: |
+          git --version
+          cc --version
+          cmake --version
+
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+          fetch-depth: 0
+
+      # Workaround: https://github.com/actions/checkout/issues/1169
+      - name: Mark directory as safe
+        run: |
+          git config --system --add safe.directory $PWD
+
+      - name: Install boost
+        uses: MarkusJx/install-boost@v2.4.1
+        id: install-boost
+        with:
+            # A list of supported versions can be found here:
+            # https://github.com/MarkusJx/prebuilt-boost/blob/main/versions-manifest.json
+            boost_version: ${{ env.BOOST_VERSION }}
+            boost_install_dir: ${{ env.CONTAINER_TMP }}
+            platform_version: 22.04
+            toolset: gcc
+            arch: x86
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install aws tools
+        run: |
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          ./aws/install
+          pip3 install mkrepo
+
+      # Workaround: https://github.com/actions/checkout/issues/1169
+      - name: Mark directory as safe
+        run: |
+          git config --system --add safe.directory $PWD
+
+      - name: Compute release number
+        env:
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: |
+          LATEST_TAG=`git describe --tags | cut -d'-' -f1 | tr -d v`
+          MAJOR=`echo $LATEST_TAG | cut -d'.' -f1`
+          MINOR=`echo $LATEST_TAG | cut -d'.' -f2`
+          PATCH=`echo $LATEST_TAG | cut -d'.' -f3`
+
+          case $RELEASE_TYPE in
+
+            major)
+              MAJOR=$((MAJOR+1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR+1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH+1))
+              ;;
+            *)
+              echo "Unknown release type"
+              exit 1
+              ;;
+          esac
+          echo "VERSION=$MAJOR.$MINOR.$PATCH" >> $GITHUB_ENV
+          echo "VERSION=$MAJOR.$MINOR.$PATCH"
+
+      - name: Configure CMake
+        env:
+          BOOST_ROOT: "${{ steps.install-boost.outputs.BOOST_ROOT }}"
+        run: |
+          cmake -G "Unix Makefiles" \
+            -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DPROOF_PRODUCER_VERSION=${{ env.VERSION }} .
+
+      - name: Build packages
+        run: |
+          make -C build package -j$(nproc)
+
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          name: "proof-producer_-v${{ env.VERSION }}"
+          tag: "v${{ env.VERSION }}"
+          artifacts: "build/proof-producer_*.deb"
+
+      - name: Upload packages to repository
+        env:
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+        run: |
+          PROOF_PRODUCER_PACKAGE=`ls build/proof-producer_*.deb | cut -d'/' -f2`
+          POOL="ubuntu/pool/main/z/proof-producer"
+          aws s3api put-object --bucket deb.nil.foundation --key $POOL/$PROOF_PRODUCER_PACKAGE --body build/$PROOF_PRODUCER_PACKAGE
+          mkrepo s3://deb.nil.foundation/ubuntu/
