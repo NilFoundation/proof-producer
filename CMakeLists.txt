@@ -43,6 +43,13 @@ endmacro()
 
 option(BUILD_TESTS "Build unit tests" FALSE)
 option(BUILD_SHARED_LIBS "Build shared library" TRUE)
+option(BUILD_WITH_BOOST_STATIC_LIBS "Build using Boost static libraries" TRUE)
+
+if(BUILD_WITH_BOOST_STATIC_LIBS)
+    set(Boost_USE_STATIC_LIBS TRUE)
+else()
+    set(Boost_USE_STATIC_LIBS FALSE)
+endif()
 
 add_subdirectories("${CMAKE_CURRENT_LIST_DIR}/bin")
 
