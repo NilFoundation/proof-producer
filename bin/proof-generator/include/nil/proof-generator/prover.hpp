@@ -101,8 +101,8 @@ namespace nil {
             boost::filesystem::path assignment_table_file_name,
             boost::filesystem::path proof_file,
             bool skip_verification,
-            std::size_t public_input_size,
-            std::size_t shared_size
+            std::size_t public_input_rows,
+            std::size_t shared_rows
         ) {
             using curve_type = nil::crypto3::algebra::curves::pallas;
             using BlueprintFieldType = typename curve_type::base_field_type;
@@ -269,10 +269,10 @@ namespace nil {
                 {
                     std::array<std::size_t, PublicInputColumns> public_input_sizes;
                     for(std::size_t i = 0; i < PublicInputColumns; i++){
-                        public_input_sizes[i] = public_input_size;
+                        public_input_sizes[i] = public_input_rows;
                     }
-                    if(PublicInputColumns > 1 && shared_size > 0){
-                        public_input_sizes[PublicInputColumns - 1] = shared_size;
+                    if(PublicInputColumns > 1 && shared_rows > 0){
+                        public_input_sizes[PublicInputColumns - 1] = shared_rows;
                     }
 
                     proof_file.replace_extension(".json");
@@ -282,7 +282,7 @@ namespace nil {
                         placeholder_params,
                         nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>,
                         typename nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params>::preprocessed_data_type::common_data_type
-                    >::generate_input(
+                    >::generate_proof_json(
                         public_preprocessed_data.common_data.vk, assignment_table.public_inputs(), proof, public_input_sizes
                     );
                     output_file.close();
