@@ -89,7 +89,9 @@ namespace nil {
                     out << hashed_data;
                     return generate_field_array2_from_64_hex_string(out.str());
                 } else if constexpr(std::is_same<HashType, nil::crypto3::hashes::keccak_1600<256>>::value){
-                    return "{\"string\": \"keccak\"}";
+                    std::stringstream out;
+                    out << hashed_data;
+                    return generate_field_array2_from_64_hex_string(out.str());
                 } else {
                     std::stringstream out;
                     out << "{\"field\": \"" <<  hashed_data <<  "\"}";
