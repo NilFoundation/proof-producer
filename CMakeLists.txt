@@ -61,6 +61,7 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/plugin")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/application")
 
 if(NOT PROOF_PRODUCER_VERSION)
+    find_program(GIT_EXECUTABLE NAMES git PATHS /usr/bin /usr/local/bin)
     execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags HEAD
                     OUTPUT_VARIABLE DESCRIBE_OUTBUT
                     OUTPUT_STRIP_TRAILING_WHITESPACE
