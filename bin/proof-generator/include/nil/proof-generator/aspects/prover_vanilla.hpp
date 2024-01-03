@@ -54,6 +54,8 @@ namespace nil {
                 boost::filesystem::path input_circuit_file_path() const;
                 boost::filesystem::path input_assignment_file_path() const;
                 boost::filesystem::path output_proof_file_path() const;
+                std::size_t public_input_size() const;
+                std::size_t shared_size() const;
 
                 bool is_skip_verification_mode_on() const;
 
@@ -65,6 +67,8 @@ namespace nil {
                 boost::filesystem::path circuit_file_path;
                 boost::filesystem::path assignment_table_file_path;
                 boost::filesystem::path proof_file_path;
+                std::size_t _public_input_size;
+                std::size_t _shared_size;
                 bool skip_verification;
             };
         }    // namespace aspects

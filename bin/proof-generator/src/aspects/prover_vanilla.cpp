@@ -51,6 +51,8 @@ namespace nil {
                 ("proof", boost::program_options::value<std::string>(),"Output proof file")
                 ("circuit,c", boost::program_options::value<std::string>(), "Circuit input file")
                 ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file")
+                ("public_input_size,p", boost::program_options::value<std::size_t>(), "Public input columns expected size")
+                ("shared_size,s", boost::program_options::value<std::size_t>(), "Shared column expected size")
                 ("log-level,l", boost::program_options::value<std::string>(), "Log level (trace, debug, info, warning, error, fatal)")
                 ("skip-verification", "If set - skips verifiyng step of the generated proof");
                 // clang-format on
@@ -62,7 +64,7 @@ namespace nil {
 
             void prover_vanilla::initialize(configuration_type &vm) {
                 std::string log_level = "info";
-                
+
                 if (vm.count("log-level")) {
                     log_level = vm["log-level"].as<std::string>();
                 }
@@ -108,12 +110,24 @@ namespace nil {
                 } else {
                     BOOST_LOG_TRIVIAL(error) << "Assignment table file path not specified";
                 }
-                
+
                 if (vm.count("proof")) {
                     proof_file_path = vm["proof"].as<std::string>();
                 } else {
                     proof_file_path = path_aspect->current_path() / "proof.bin";
                     BOOST_LOG_TRIVIAL(debug) << "Proof file path not specified, using default: " << proof_file_path;
+                }
+
+                if (vm.count("public_input_size")) {
+                    _public_input_size = vm["public_input_size"].as<std::size_t>();
+                } else {
+                    _public_input_size = 50;
+                }
+
+                if (vm.count("shared_size")) {
+                    _shared_size = vm["shared_size"].as<std::size_t>();
+                } else {
+                    _shared_size = 0;
                 }
 
                 if (vm.count("skip-verification")) {
@@ -131,6 +145,14 @@ namespace nil {
 
             boost::filesystem::path prover_vanilla::input_assignment_file_path() const {
                 return assignment_table_file_path;
+            }
+
+            std::size_t prover_vanilla::public_input_size() const {
+                return _public_input_size;
+            }
+
+            std::size_t prover_vanilla::shared_size() const {
+                return _shared_size;
             }
 
             boost::filesystem::path prover_vanilla::output_proof_file_path() const {
