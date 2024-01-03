@@ -53,6 +53,7 @@
 #include <nil/marshalling/endianness.hpp>
 
 #include <nil/proof-generator/detail/utils.hpp>
+#include <nil/proof-generator/recursive_json_generator.hpp>
 
 namespace nil {
     namespace proof_generator {
@@ -95,7 +96,14 @@ namespace nil {
 
         }    // namespace detail
 
-        bool prover(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file, bool skip_verification) {
+        bool prover(
+            boost::filesystem::path circuit_file_name,
+            boost::filesystem::path assignment_table_file_name,
+            boost::filesystem::path proof_file,
+            bool skip_verification,
+            std::size_t public_input_size,
+            std::size_t shared_size
+        ) {
             using curve_type = nil::crypto3::algebra::curves::pallas;
             using BlueprintFieldType = typename curve_type::base_field_type;
             constexpr std::size_t WitnessColumns = 15;
@@ -257,6 +265,29 @@ namespace nil {
                     nil::crypto3::marshalling::types::fill_placeholder_proof<Endianness, ProofType>(proof, fri_params);
                 proof_print<Endianness, ProofType>(proof, fri_params, proof_file);
                 BOOST_LOG_TRIVIAL(info) << "Proof written";
+
+                {
+                    std::array<std::size_t, PublicInputColumns> public_input_sizes;
+                    for(std::size_t i = 0; i < PublicInputColumns; i++){
+                        public_input_sizes[i] = public_input_size;
+                    }
+                    if(PublicInputColumns > 1 && shared_size > 0){
+                        public_input_sizes[PublicInputColumns - 1] = shared_size;
+                    }
+
+                    proof_file.replace_extension(".json");
+                    std::ofstream output_file;
+                    output_file.open(proof_file);
+                    output_file << recursive_json_generator<
+                        placeholder_params,
+                        nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>,
+                        typename nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params>::preprocessed_data_type::common_data_type
+                    >::generate_input(
+                        public_preprocessed_data.common_data.vk, assignment_table.public_inputs(), proof, public_input_sizes
+                    );
+                    output_file.close();
+                    BOOST_LOG_TRIVIAL(info) << "JSON written" << std::endl;
+                }
                 return true;
             }
         }
