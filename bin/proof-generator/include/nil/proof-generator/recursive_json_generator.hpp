@@ -238,7 +238,7 @@ namespace nil {
                 return out.str();
             }
 
-            static inline std::string generate_input(
+            static inline std::string generate_proof_json(
                 const verification_key_type &vk,
                 const typename assignment_table_type::public_input_container_type &public_inputs,
                 const proof_type &proof,

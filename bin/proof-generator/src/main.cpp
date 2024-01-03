@@ -108,14 +108,14 @@ struct prover {
             context_.find<nil::proof_generator::aspects::prover_vanilla>()->input_assignment_file_path();
 
         bool skip_verification = context_.find<nil::proof_generator::aspects::prover_vanilla>()->is_skip_verification_mode_on();
-        std::size_t public_input_size = context_.find<nil::proof_generator::aspects::prover_vanilla>()->public_input_size();
-        std::size_t shared_size = context_.find<nil::proof_generator::aspects::prover_vanilla>()->shared_size();
+        std::size_t public_input_rows = context_.find<nil::proof_generator::aspects::prover_vanilla>()->public_input_rows();
+        std::size_t shared_rows = context_.find<nil::proof_generator::aspects::prover_vanilla>()->shared_rows();
 
         boost::filesystem::path proof_file = context_.find<nil::proof_generator::aspects::prover_vanilla>()->output_proof_file_path();
 
         return nil::proof_generator::prover(
             circuit_file_path, assignment_file_path, proof_file, skip_verification,
-            public_input_size, shared_size
+            public_input_rows, shared_rows
         ) ? 0 : 1;
     }
 
