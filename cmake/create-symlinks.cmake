@@ -1,6 +1,6 @@
 message("Creating symlinks")
 
-list(APPEND BINARIES proof-generator proof-generator-multithreaded)
+list(APPEND BINARIES proof-generator-single-threaded proof-generator-multi-threaded)
 
 file(MAKE_DIRECTORY $ENV{DESTDIR}/usr/bin)
 
