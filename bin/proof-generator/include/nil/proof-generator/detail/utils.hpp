@@ -19,11 +19,15 @@
 #ifndef PROOF_GENERATOR_DETAIL_UTILS_HPP
 #define PROOF_GENERATOR_DETAIL_UTILS_HPP
 
-#include <nil/marshalling/endianness.hpp>
-#include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
-#include <nil/marshalling/status_type.hpp>
-
 #include <fstream>
+
+#include <nil/marshalling/endianness.hpp>
+#include <nil/marshalling/status_type.hpp>
+#include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
+
+#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
+    #include <nil/actor/zk/snark/systems/plonk/placeholder/proof.hpp>
+#endif
 
 namespace nil {
     namespace proof_generator {
@@ -44,7 +48,15 @@ namespace nil {
             using namespace nil::crypto3::marshalling;
 
             using TTypeBase = nil::marshalling::field_type<Endianness>;
-            using proof_marshalling_type = nil::crypto3::zk::snark::placeholder_proof<TTypeBase, Proof>;
+
+            using proof_marshalling_type = nil::
+#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
+            actor
+#else
+            crypto3
+#endif
+            ::zk::snark::placeholder_proof<TTypeBase, Proof>;
+
             auto filled_placeholder_proof =
                 crypto3::marshalling::types::fill_placeholder_proof<Endianness, Proof>(proof, params);
 

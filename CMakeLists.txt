@@ -51,7 +51,11 @@ else()
     set(Boost_USE_STATIC_LIBS FALSE)
 endif()
 
-add_subdirectories("${CMAKE_CURRENT_LIST_DIR}/bin")
+list(APPEND PROOF_GENERATOR_MODE_LIST single-threaded multi-threaded)
+
+foreach(PROOF_GENERATOR_MODE_SUFFIX IN LISTS PROOF_GENERATOR_MODE_LIST)
+    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/proof-generator" ${CMAKE_BINARY_DIR}/bin/proof-generator-${PROOF_GENERATOR_MODE_SUFFIX})
+endforeach()
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3")
 add_subdirectories("${CMAKE_CURRENT_LIST_DIR}/libs/actor")

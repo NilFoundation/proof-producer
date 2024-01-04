@@ -14,7 +14,19 @@ cm_find_package(CM)
 include(CMDeploy)
 include(CMSetupVersion)
 
-cm_project(proof-generator WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES ASM C CXX)
+cm_project(proof-generator-${PROOF_GENERATOR_MODE_SUFFIX} WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES ASM C CXX)
+
+string(TOUPPER ${PROOF_GENERATOR_MODE_SUFFIX} PROOF_GENERATOR_MODE_SUFFIX)
+string(REPLACE "-" "_" PROOF_GENERATOR_MODE_SUFFIX ${PROOF_GENERATOR_MODE_SUFFIX})
+
+set (PROOF_GENERATOR_MODE "PROOF_GENERATOR_MODE_${PROOF_GENERATOR_MODE_SUFFIX}")
+add_definitions(-D${PROOF_GENERATOR_MODE})
+message (STATUS "Configuring proof-generator with PROOF_GENERATOR_MODE: ${PROOF_GENERATOR_MODE}")
+
+if (${PROOF_GENERATOR_MODE} STREQUAL "PROOF_GENERATOR_MODE_MULTI_THREADED")
+    set (PROOF_GENERATOR_MODE_MULTI_THREADED ON)
+endif()
+
 
 option(ZK_PLACEHOLDER_PROFILING_ENABLED "Build with placeholder profiling" FALSE)
 option(ZK_PLACEHOLDER_DEBUG_ENABLED "Build with placeholder testing inside" FALSE)
@@ -26,9 +38,6 @@ endif()
 if(ZK_PLACEHOLDER_DEBUG)
     add_definitions(-DZK_PLACEHOLDER_DEBUG_ENABLED)
 endif()
-
-#find_package(Boost COMPONENTS REQUIRED filesystem log log_setup program_options thread system)
-#set(Boost_LIBRARIES boost_random boost_program_options)
 
 if (NOT Boost_FOUND AND NOT CMAKE_CROSSCOMPILING)
     find_package(Boost COMPONENTS REQUIRED filesystem log log_setup program_options thread system)
@@ -77,8 +86,7 @@ set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED TRUE)
 
-target_link_libraries(${CURRENT_PROJECT_NAME} PRIVATE
-
+list(APPEND libraries
         crypto3::algebra
         crypto3::block
         crypto3::codec
@@ -100,6 +108,22 @@ target_link_libraries(${CURRENT_PROJECT_NAME} PRIVATE
         Boost::log
         Boost::thread
 )
+
+if (PROOF_GENERATOR_MODE_MULTI_THREADED)
+    list(APPEND libraries
+        actor::core
+        actor::containers
+        actor::network
+        actor::math
+        actor::zk
+    )
+endif ()
+
+if (PROOF_GENERATOR_MODE_MULTI_THREADED AND (NOT (UNIX AND (CMAKE_SYSTEM_NAME STREQUAL "Linux"))))
+    list(APPEND libraries epoll-shim)
+endif ()
+
+target_link_libraries(${CURRENT_PROJECT_NAME} ${libraries})
 
 target_include_directories(${CURRENT_PROJECT_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
