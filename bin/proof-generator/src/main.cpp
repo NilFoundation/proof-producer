@@ -25,6 +25,15 @@
 
 #undef B0
 
+#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
+    #include <nil/actor/core/app_template.hh>
+    #include <nil/actor/core/thread.hh>
+    #include <nil/actor/core/reactor.hh>
+    #include <nil/actor/core/posix.hh>
+    #include <nil/actor/core/future.hh>
+    #include <nil/actor/core/posix.hh>
+#endif
+
 #include <boost/random.hpp>
 #include <boost/random/random_device.hpp>
 #include <boost/json/src.hpp>
@@ -36,8 +45,6 @@
 #include <nil/proof-generator/aspects/configuration.hpp>
 #include <nil/proof-generator/aspects/prover_vanilla.hpp>
 #include <nil/proof-generator/detail/configurable.hpp>
-
-
 #include <nil/proof-generator/prover.hpp>
 
 template<typename F, typename First, typename... Rest>
@@ -99,20 +106,60 @@ inline bool configure_aspects(boost::application::context &ctx, Application &app
 struct prover {
     prover(boost::application::context &context) : context_(context) {
     }
+#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
+    int run_actor(int ac, char **av) {
+        using namespace nil::actor;
+
+        // Don't interfere with actor signal handling
+        sigset_t mask;
+        sigfillset(&mask);
+        for (auto sig : {SIGSEGV}) {
+            sigdelset(&mask, sig);
+        }
+        auto r = ::pthread_sigmask(SIG_BLOCK, &mask, NULL);
+        if (r) {
+            std::cerr << "Error blocking signals. Aborting." << std::endl;
+            abort();
+        }
+
+        nil::actor::app_template app;
+        return app.run(ac, av, [this, &app] {
+            return nil::actor::async([&] {
+                return nil::proof_generator::prover(circuit_file_path, assignment_file_path, proof_file, skip_verification) ? 0 : 1;
+            });
+        });
+    }
+#endif
 
     int operator()() {
         BOOST_APPLICATION_FEATURE_SELECT
-        boost::filesystem::path circuit_file_path =
-            context_.find<nil::proof_generator::aspects::prover_vanilla>()->input_circuit_file_path();
-        boost::filesystem::path assignment_file_path =
+        circuit_file_path = context_.find<nil::proof_generator::aspects::prover_vanilla>()->input_circuit_file_path();
+        assignment_file_path =
             context_.find<nil::proof_generator::aspects::prover_vanilla>()->input_assignment_file_path();
 
-        bool skip_verification = context_.find<nil::proof_generator::aspects::prover_vanilla>()->is_skip_verification_mode_on();
+        skip_verification = context_.find<nil::proof_generator::aspects::prover_vanilla>()->is_skip_verification_mode_on();
 
-        boost::filesystem::path proof_file = context_.find<nil::proof_generator::aspects::prover_vanilla>()->output_proof_file_path();
+        proof_file = context_.find<nil::proof_generator::aspects::prover_vanilla>()->output_proof_file_path();
 
+#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
+        std::vector<std::string> arguments = { "program_name", "--shard0-mem-scale", "4800" };
+
+        // Constructing argc and argv
+        std::vector<char*> argv;
+        for (const auto& arg : arguments)
+            argv.push_back((char*)arg.data());
+        argv.push_back(nullptr);
+
+        return run_actor(arguments.size(), argv.data());
+#else
         return nil::proof_generator::prover(circuit_file_path, assignment_file_path, proof_file, skip_verification) ? 0 : 1;
+#endif
     }
+
+    boost::filesystem::path proof_file;
+    boost::filesystem::path circuit_file_path;
+    boost::filesystem::path assignment_file_path;
+    bool skip_verification;
 
     boost::application::context &context_;
 };
