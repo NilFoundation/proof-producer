@@ -100,7 +100,8 @@ set(CPACK_GENERATOR DEB)
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "=nil; Foundation")
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDENCIES_MULTITHREADED_VERSION "libhwloc-dev, libyaml-cpp-dev, libfmt-dev")
+set(CPACK_DEBIAN_PACKAGE_DEPENDENCIES_MULTITHREADED_VERSION "libhwloc-dev (=2.7.0-2ubuntu1), libyaml-cpp-dev (=0.7.0+dfsg-8build1), libfmt-dev(=6.1.2+ds-2), libc-dev, lksctp-tools, libatomic1, libprotobuf-dev (=3.12.4-1ubuntu7.22.04.1), liblz4-dev (=1.9.3-2build2), libgnutls28-dev (=3.7.3-4ubuntu1.3), libc-ares-dev (=1.18.1-1ubuntu0.22.04.2)")
+
 set(CPACK_DEBIAN_PACKAGE_DEPENDS ${CPACK_DEBIAN_PACKAGE_DEPENDENCIES_MULTITHREADED_VERSION})
 
 set(CPACK_PACKAGE_VERSION "${PROOF_PRODUCER_VERSION_MAJOR}.${PROOF_PRODUCER_VERSION_MINOR}.${PROOF_PRODUCER_VERSION_PATCH}")

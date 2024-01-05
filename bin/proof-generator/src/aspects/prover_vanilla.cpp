@@ -52,6 +52,9 @@ namespace nil {
                 ("circuit,c", boost::program_options::value<std::string>(), "Circuit input file")
                 ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file")
                 ("log-level,l", boost::program_options::value<std::string>(), "Log level (trace, debug, info, warning, error, fatal)")
+#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
+                ("shard0-mem-scale", boost::program_options::value<int>(), "If set allocates this many times more memory for shard #0 compared to other shards.")
+#endif
                 ("skip-verification", "If set - skips verifiyng step of the generated proof");
                 // clang-format on
                 cli.add(options);
@@ -119,6 +122,11 @@ namespace nil {
                 if (vm.count("skip-verification")) {
                     skip_verification = true;
                 }
+#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
+                if (vm.count("shard0-mem-scale")) {
+                    shard0_mem_scale = vm["shard0-mem-scale"].as<int>();
+                }
+#endif
             }
 
             boost::filesystem::path prover_vanilla::default_config_path() const {
@@ -140,6 +148,12 @@ namespace nil {
             bool prover_vanilla::is_skip_verification_mode_on() const {
                 return skip_verification;
             }
+
+#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
+            int prover_vanilla::get_shard0_mem_scale() const {
+                return shard0_mem_scale;
+            }
+#endif
         }    // namespace aspects
     }        // namespace proof_generator
 }    // namespace nil
