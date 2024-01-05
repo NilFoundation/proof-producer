@@ -59,13 +59,20 @@ namespace nil {
 
                 boost::filesystem::path default_config_path() const;
 
+#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
+                int get_shard0_mem_scale() const;
+#endif
             protected:
                 boost::shared_ptr<path> path_aspect;
 
                 boost::filesystem::path circuit_file_path;
                 boost::filesystem::path assignment_table_file_path;
                 boost::filesystem::path proof_file_path;
-                bool skip_verification;
+                bool skip_verification = false;
+
+#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
+                int shard0_mem_scale = 1;
+#endif
             };
         }    // namespace aspects
     }        // namespace proof_generator

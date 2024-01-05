@@ -142,7 +142,9 @@ struct prover {
         proof_file = context_.find<nil::proof_generator::aspects::prover_vanilla>()->output_proof_file_path();
 
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-        std::vector<std::string> arguments = { "program_name", "--shard0-mem-scale", "4800" };
+        int shard0_mem_scale = context_.find<nil::proof_generator::aspects::prover_vanilla>()->get_shard0_mem_scale();
+        std::vector<std::string> arguments = { 
+            "unused_program_name", "--shard0-mem-scale", std::to_string(shard0_mem_scale) };
 
         // Constructing argc and argv
         std::vector<char*> argv;
