@@ -40,7 +40,7 @@ ${ZKLLVM_BUILD:-build}/bin/assigner/assigner -b ${ZKLLVM_BUILD:-build}/examples/
 
     Install fmt-6
     ```
-    wget http://launchpadlibrarian.net/466750967/libfmt-dev_6.1.2+ds-2_amd64.deb
+    wget http://archive.ubuntu.com/ubuntu/pool/universe/f/fmtlib/libfmt-dev_6.1.2
     sudo apt remove libfmt-dev
     sudo apt install ./libfmt-dev_6.1.2+ds-2_amd64.deb
     ```
