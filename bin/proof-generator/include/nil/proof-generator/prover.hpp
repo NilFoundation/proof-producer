@@ -53,10 +53,34 @@
 #include <nil/marshalling/endianness.hpp>
 
 #include <nil/proof-generator/detail/utils.hpp>
+#include <nil/proof-generator/recursive_json_generator.hpp>
 
 namespace nil {
     namespace proof_generator {
         namespace detail {
+            bool read_buffer_from_file(std::ifstream &ifile, std::vector<std::uint8_t> &v) {
+                char c;
+                char c1;
+                uint8_t b;
+
+                ifile >> c;
+                if (c != '0')
+                    return false;
+                ifile >> c;
+                if (c != 'x')
+                    return false;
+                while (ifile) {
+                    std::string str = "";
+                    ifile >> c >> c1;
+                    if (!isxdigit(c) || !isxdigit(c1))
+                        return false;
+                    str += c;
+                    str += c1;
+                    b = stoi(str, 0, 0x10);
+                    v.push_back(b);
+                }
+                return true;
+            }
 
             inline std::vector<std::size_t> generate_random_step_list(const std::size_t r, const int max_step) {
                 using dist_type = std::uniform_int_distribution<int>;
@@ -100,8 +124,8 @@ namespace nil {
             using BlueprintFieldType = typename curve_type::base_field_type;
             constexpr std::size_t WitnessColumns = 15;
             constexpr std::size_t PublicInputColumns = 1;
-            constexpr std::size_t ConstantColumns = 35;
-            constexpr std::size_t SelectorColumns = 36;
+            constexpr std::size_t ConstantColumns = 32;
+            constexpr std::size_t SelectorColumns = 66;
 
             using ArithmetizationParams =
                 nil::crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns,
@@ -126,12 +150,11 @@ namespace nil {
             ConstraintSystemType constraint_system;
             {
                 std::ifstream ifile;
-                ifile.open(circuit_file_name, std::ios_base::binary | std::ios_base::in);
+                ifile.open(circuit_file_name);
                 if (!ifile.is_open()) {
                     BOOST_LOG_TRIVIAL(error) << "Cannot find input file " << circuit_file_name;
                     return false;
                 }
-
                 std::vector<std::uint8_t> v;
                 ifile.seekg(0, std::ios_base::end);
                 const auto fsize = ifile.tellg();
@@ -156,7 +179,7 @@ namespace nil {
             AssignmentTableType assignment_table;
             {
                 std::ifstream iassignment;
-                iassignment.open(assignment_table_file_name, std::ios_base::binary | std::ios_base::in);
+                iassignment.open(assignment_table_file_name);
                 if (!iassignment) {
                     BOOST_LOG_TRIVIAL(error) << "Cannot open " << assignment_table_file_name;
                     return false;
@@ -257,6 +280,24 @@ namespace nil {
                     nil::crypto3::marshalling::types::fill_placeholder_proof<Endianness, ProofType>(proof, fri_params);
                 proof_print<Endianness, ProofType>(proof, fri_params, proof_file);
                 BOOST_LOG_TRIVIAL(info) << "Proof written";
+
+
+                {
+                    constexpr std::array<std::size_t, PublicInputColumns> public_input_sizes = {50};
+
+                    proof_file.replace_extension(".json");
+                    std::ofstream output_file;
+                    output_file.open(proof_file);
+                    output_file << recursive_json_generator<
+                        placeholder_params,
+                        nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>,
+                        typename nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params>::preprocessed_data_type::common_data_type
+                    >::generate_input(
+                        public_preprocessed_data.common_data.vk, assignment_table.public_inputs(), proof, public_input_sizes
+                    );
+                    output_file.close();
+                    std::cout << "JSON written" << std::endl;
+                }
                 return true;
             }
         }
