@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Install dependencies
-        # Versions of libraries used here must match the ones fixed in CPACK_DEBIAN_PACKAGE_DEPENDENCIES_MULTITHREADED_VERSION of CMakeLists.txt.
+        # Versions of runtime libraries are set in CPACK_DEBIAN_PACKAGE_DEPENDENCIES_MULTITHREADED_VERSION of CMakeLists.txt.
         run: |
           env && \
           apt update && \
@@ -57,7 +57,7 @@ jobs:
             liblz4-dev=1.9.3-2build2 \
             libgnutls28-dev=3.7.3-4ubuntu1.3 \
             libprotobuf-dev=3.12.4-1ubuntu7.22.04.1 \
-            libyaml-cpp-dev=0.7.0+dfsg-8build \
+            libyaml-cpp-dev=0.7.0+dfsg-8build1 \
             libsctp-dev \
             ragel \
             xfslibs-dev \
@@ -66,10 +66,8 @@ jobs:
             libhwloc-dev=2.7.0-2ubuntu1 \
             libc-dev \
             lksctp-tools \
-            libatomic1 && \
-          wget http://archive.ubuntu.com/ubuntu/pool/universe/f/fmtlib/libfmt-dev_6.1.2+ds-2_amd64.deb && \
-          apt install -y ./libfmt-dev_6.1.2+ds-2_amd64.deb
-            
+            libatomic1
+
 
       - name: Print toolchain information
         run: |
