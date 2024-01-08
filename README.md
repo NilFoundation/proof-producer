@@ -62,13 +62,6 @@ proof-generator --circuit <circuit-file> --assignment <assignment-file> --proof 
         numactl
     ```
 
-    Install fmt-6
-    ```
-    wget http://archive.ubuntu.com/ubuntu/pool/universe/f/fmtlib/libfmt-dev_6.1.2
-    sudo apt remove libfmt-dev
-    sudo apt install ./libfmt-dev_6.1.2+ds-2_amd64.deb
-    ```
-
 2. Build with CMake:
     ```mkdir build
     cd build
