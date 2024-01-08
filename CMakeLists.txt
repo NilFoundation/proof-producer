@@ -108,7 +108,7 @@ if(PROOF_PRODUCER_VERSION_INCREMENT)
     string(APPEND CPACK_PACKAGE_VERSION "-${PROOF_PRODUCER_VERSION_INCREMENT}")
 endif()
 
-set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/lib/zkllvm")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/lib/proof-producer")
 
 install(SCRIPT cmake/create-symlinks.cmake)
 
