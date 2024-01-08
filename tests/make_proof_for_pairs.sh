@@ -16,7 +16,7 @@ make_proof_for_pair() {
 
     local proof_generator_binary="${script_dir}/../build/bin/proof-generator/proof-generator"
     if [ "$use_multithreaded" = true ]; then
-        proof_generator_binary="${script_dir}/../build/bin/proof-generator-multithreaded/proof-generator-multithreaded"
+        proof_generator_binary="${script_dir}/../build/bin/proof-generator-multi-threaded/proof-generator-multi-threaded"
     fi
 
     if [ -f "$crct_file" ]; then
