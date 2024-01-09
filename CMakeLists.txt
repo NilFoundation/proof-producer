@@ -108,7 +108,11 @@ if(PROOF_PRODUCER_VERSION_INCREMENT)
     string(APPEND CPACK_PACKAGE_VERSION "-${PROOF_PRODUCER_VERSION_INCREMENT}")
 endif()
 
-set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/lib/proof-producer")
+if (NOT CMAKE_INSTALL_PREFIX)
+    set(CMAKE_INSTALL_PREFIX "/usr/lib/proof-producer")
+endif()
+
+set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
 install(SCRIPT cmake/create-symlinks.cmake)
 
