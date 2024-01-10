@@ -29,7 +29,7 @@ jobs:
       CONTAINER_TMP: /opt/
       HOST_TMP: /home/runner/work/_temp/
       DEBIAN_FRONTEND: noninteractive
-      BOOST_VERSION: "1.80.0"
+      BOOST_VERSION: "1.84.0"
 
     container:
       image: ubuntu:22.04
@@ -153,6 +153,7 @@ jobs:
           cmake -G "Unix Makefiles" \
             -B build \
             -DCMAKE_BUILD_TYPE=Release \
+            -DBoost_USE_STATIC_LIBS=ON \
             -DPROOF_PRODUCER_VERSION=${{ env.VERSION }} .
 
       - name: Build packages

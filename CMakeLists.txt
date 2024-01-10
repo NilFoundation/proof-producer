@@ -26,7 +26,6 @@ include(CMConfig)
 include(CMDeploy)
 include(CMSetupVersion)
 include_directories(${Boost_INCLUDE_DIRS})
-set(Boost_USE_STATIC_LIBS ON)  # Someday linking started to fail, this fixed it
 
 cm_workspace(proof-producer)
 
