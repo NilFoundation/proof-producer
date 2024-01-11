@@ -13,15 +13,6 @@ on:
         default: minor
 
 jobs:
-  handle-syncwith:
-    if: github.event_name == 'pull_request'
-    name: Call Reusable SyncWith Handler
-    uses: NilFoundation/ci-cd/.github/workflows/reusable-handle-syncwith.yml@v1.1.2
-    with:
-      ci-cd-ref: 'v1.1.2'
-    secrets: inherit
-
-
   make-release-linux:
     runs-on: [ "self-hosted", Linux, X64, "aws_autoscaling"]
 
@@ -159,7 +150,6 @@ jobs:
       - name: Build packages
         run: |
           make -C build package -j$(nproc)
-
 
       - name: Create release
         uses: ncipollo/release-action@v1
