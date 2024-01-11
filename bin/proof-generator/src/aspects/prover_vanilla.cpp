@@ -64,6 +64,16 @@ namespace nil {
             }
 
             void prover_vanilla::initialize(configuration_type &vm) {
+                if (vm.count("version")) {
+#ifdef PROOF_GENERATOR_VERSION
+#define xstr(s) str(s)
+#define str(s) #s
+        std::cout << xstr(PROOF_GENERATOR_VERSION) << std::endl;
+#else
+        std::cout << "undefined" << std::endl;
+#endif
+                    }
+
                 std::string log_level = "info";
                 
                 if (vm.count("log-level")) {
@@ -80,7 +90,7 @@ namespace nil {
                 };
 
                 if (log_options.find(log_level) == log_options.end()) {
-                    std::cerr << "Invalid command line argument -l (log level): " << log_level << std::endl;
+                    BOOST_LOG_TRIVIAL(error) << "Invalid command line argument -l (log level): " << log_level << std::endl;
                     return;
                 }
 
