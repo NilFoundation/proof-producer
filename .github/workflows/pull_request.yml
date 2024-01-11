@@ -1,0 +1,299 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+
+concurrency:
+  # In master we want to run for every commit, in other branches — only for the last one
+  group: ${{
+    ( github.ref == 'refs/heads/master' &&
+    format('{0}/{1}/{2}', github.workflow, github.ref, github.sha) )
+    ||
+    format('{0}/{1}', github.workflow, github.ref) }}
+  cancel-in-progress: true
+
+env:
+  BOOST_VERSION: "1.83.0"
+  CAA_ARTIFACT_NAME: circuits-and-assignments
+  TO_ARTIFACT_NAME: transpiler-output
+  INTEGRATION_TESTING_TARGETS: |
+    arithmetics_cpp_example
+    polynomial_cpp_example
+    poseidon_cpp_example
+    merkle_tree_poseidon_cpp_example
+    strlen_cpp_example
+    uint_remainder_cpp
+    uint_shift_left
+    uint_bit_decomposition
+    uint_bit_composition
+    compare_eq_cpp
+    private_input_cpp
+
+jobs:
+  handle-syncwith:
+    if: github.event_name == 'pull_request'
+    name: Call Reusable SyncWith Handler
+    uses: NilFoundation/ci-cd/.github/workflows/reusable-handle-syncwith.yml@v1.1.2
+    with:
+      ci-cd-ref: 'v1.1.2'
+    secrets: inherit
+
+
+  prepare-targets:
+    name: Prepare targets strings
+    runs-on: ubuntu-22.04
+    outputs:
+      evm-targets: ${{ steps.get-targets.outputs.evm-targets }}
+      prover-targets: ${{ steps.get-targets.outputs.prover-targets }}
+    steps:
+      - name: Set targets for integration testing
+        id: get-targets
+        run: |
+          targets_str=$(echo "${{ env.INTEGRATION_TESTING_TARGETS }}" | awk 'NF {print "transpiler_output_" $1}')
+          echo "evm-targets<<EOF" >> $GITHUB_OUTPUT
+          echo "${targets_str}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "prover-targets<<EOF" >> $GITHUB_OUTPUT
+          echo "${{ env.INTEGRATION_TESTING_TARGETS }}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+
+  get-zkllvm-run:
+    name: Get zkLLVM run to use artifacts from
+    needs:
+      - handle-syncwith
+    runs-on: ubuntu-22.04
+    outputs:
+      run-id: ${{ steps.get-run-id.outputs.run-id }}
+    steps:
+      - name: Get run ID of zkLLVM
+        id: get-run-id
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          prs_refs="${{ needs.handle-syncwith.outputs.prs-refs }}"
+          zkllvm_ref="master"
+          zkllvm_repo="NilFoundation/zkLLVM"
+
+          echo "$prs_refs" | while read line; do
+            echo $line
+            if [[ $line == "${zkllvm_repo}:"* ]]; then
+              zkllvm_ref=$(echo $line | cut -d ' ' -f 2)
+              break
+            fi
+          done
+
+          if [[ $zkllvm_ref == refs/pull/* ]]; then
+            echo "Considering reference ${zkllvm_ref} a pr ref"
+            pr_number=${zkllvm_ref#refs/pull/}
+            pr_number=${pr_number%/merge}
+            sha=$(gh api repos/${zkllvm_repo}/pulls/$pr_number --jq '.head.sha')
+          elif [[ $zkllvm_ref == refs/tags/* ]]; then
+            echo "Considering reference ${zkllvm_ref} a tag"
+            tag=${zkllvm_ref#refs/tags/}
+            sha=$(gh api repos/${zkllvm_repo}/git/ref/tags/$tag --jq '.object.sha')
+          else
+            echo "Considering reference ${zkllvm_ref} a branch"
+            branch=${zkllvm_ref#refs/heads/}
+            # We can already fetch run_id here, but better fit to common approach with extra query by sha
+            sha=$(gh api "repos/${zkllvm_repo}/actions/workflows/build_linux.yml/runs?branch=${branch}&status=completed&per_page=1" \
+              --jq '.workflow_runs[0].head_sha')
+          fi
+
+          echo "Using head sha: ${sha}"
+          run_id=$(gh api "repos/${zkllvm_repo}/actions/workflows/build_linux.yml/runs?head_sha=${sha}&status=completed&per_page=1" \
+              --jq '.workflow_runs[0].id')
+          if [ -z "${run_id}" ]; then
+            echo no run ID fetched
+            exit 1
+          fi
+          echo "Run ID: ${run_id}"
+          for artifact in "${{ env.CAA_ARTIFACT_NAME }}" "${{ env.TO_ARTIFACT_NAME }}"; do
+              # Check if the artifact exists in the run
+              if ! gh run view ${run_id} --repo ${zkllvm_repo} | grep "$artifact"; then
+                  echo "Artifact '$artifact' not found in run ${run_id}"
+                  exit 1
+              fi
+          done
+          echo "run-id=${run_id}" >> $GITHUB_OUTPUT
+
+
+  # This is copied from reusable-generate-proofs-linux.yml
+  # Disgusting duplication, we should better move all preparation and build to nix, then
+  #   make testing steps a composite action.
+  build-and-generate-proofs:
+    name: Build prover, generate proofs for circuits
+    runs-on: ubuntu-22.04
+    needs:
+      - handle-syncwith
+      - get-zkllvm-run
+      - prepare-targets
+    strategy:
+      matrix:
+        cpp-compiler: [ g++, clang++ ]
+        build-type: [ Release ]
+      fail-fast: false
+    outputs:
+      artifact-name: ${{ steps.artifact-name.outputs.merged }}
+
+    steps:
+      - name: Checkout proof-producer
+        uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+          fetch-depth: 0 # We have to fetch all to find nearest tag for version
+
+      - name: Install dependencies
+        uses: ./.github/actions/composite-install-dependecies
+
+      - name: Install fixes to GH worker
+        run: |
+          # https://github.com/actions/runner-images/issues/8659#issuecomment-1853177960
+          sudo apt-get install --allow-downgrades \
+            libstdc++6=12.3.0-1ubuntu1~22.04 \
+            libgcc-s1=12.3.0-1ubuntu1~22.04
+
+      - name: Print toolchain information
+        run: |
+          git --version
+          cc --version
+          cmake --version
+
+      - name: Checkout modules to specified refs
+        if: ${{ needs.handle-syncwith.outputs.prs-refs }} != ''
+        uses: NilFoundation/ci-cd/actions/recursive-checkout@v1.1.1
+        with:
+          paths: |
+            ${{ github.workspace }}/**
+            !${{ github.workspace }}/**/.git/**
+          refs: ${{ needs.handle-syncwith.outputs.prs-refs }}
+
+      - name: Set usefull strings
+        id: strings
+        shell: bash
+        run: |
+          echo "build-dir=${{ github.workspace }}/build" >> $GITHUB_OUTPUT
+          echo "dependencies-dir=${{ github.workspace }}/../dependencies" >> $GITHUB_OUTPUT
+          echo "artifact-dir=$(realpath ${{ github.workspace }}/../artifacts)" >> $GITHUB_OUTPUT
+
+          # Get platform version
+          if [[ ${{ runner.os }} == 'Linux' ]]; then
+            platform_version=$(lsb_release -rs)
+            proc_number=$(nproc)
+          elif [[ ${{ runner.os }} == 'macOS' ]]; then
+            platform_version=$(sw_vers -productVersion)
+            proc_number=$(sysctl -n hw.logicalcpu)
+          fi
+          echo "platform-version=${platform_version}" >> $GITHUB_OUTPUT
+
+      - name: Download circuits and assignments artifact
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          repo: NilFoundation/zkLLVM
+          name: ${{ env.CAA_ARTIFACT_NAME }}
+          path: ${{ steps.strings.outputs.artifact-dir }}
+          run_id: ${{ needs.get-zkllvm-run.outputs.run-id }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install boost
+        uses: MarkusJx/install-boost@v2.4.4
+        id: install-boost
+        with:
+          boost_version: ${{ env.BOOST_VERSION }}
+          # A list of supported versions can be found here:
+          # https://github.com/MarkusJx/prebuilt-boost/blob/main/versions-manifest.json
+          platform_version: ${{ steps.strings.outputs.platform-version }}
+          boost_install_dir: ${{ steps.strings.outputs.dependencies-dir }}
+
+      - name: Configure CMake
+        env:
+          BOOST_ROOT: "${{ steps.install-boost.outputs.BOOST_ROOT }}"
+        run: |
+          cmake \
+            -G "Unix Makefiles" \
+            -B build \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cpp-compiler }} \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+
+      - name: Build proof-producer
+        working-directory: ${{ steps.strings.outputs.build-dir }}
+        run: |
+          make
+
+      - name: List artifacts
+        working-directory: ${{ steps.strings.outputs.artifact-dir }}
+        run: find .
+
+      - name: Make proofs for pairs
+        working-directory: ${{ steps.strings.outputs.artifact-dir }}
+        run: |
+          extra_args=""
+          if [[ "true" == "true" ]]; then
+            extra_args="--multithreaded "
+          fi
+          targets_str=$(echo "${{ needs.prepare-targets.outputs.prover-targets }}" | awk '{$1=$1};1' | sed '/^$/d' | tr '\n' ' ' | sed 's/ $//')
+          echo "targets from input: ${targets_str}"
+          ${{ github.workspace }}/tests/make_proof_for_pairs.sh ${extra_args} ${targets_str}
+
+      - name: Download transpiler output artifact
+        id: download-to-artifact
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          repo: NilFoundation/zkLLVM
+          name: ${{ env.TO_ARTIFACT_NAME }}
+          path: ${{ steps.strings.outputs.artifact-dir }}
+          run_id: ${{ needs.get-zkllvm-run.outputs.run-id }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Merge proofs into transpiler output
+        working-directory: ${{ steps.strings.outputs.artifact-dir }}
+        run: |
+          copy_failed=0
+          while read dir; do
+            base_name=${dir#./transpiler_output_}
+
+            if [[ -d "$base_name" ]]; then
+              if ! cp "${base_name}/proof.bin" "${dir}/"; then
+                echo "Failed to copy proof.bin to ${dir}" >&2
+                copy_failed=1
+              else
+                echo "proof.bin added to ${dir}"
+              fi
+            else
+              echo "Error: No matching directory found for ${dir}" >&2
+            fi
+          done < <(find . -type d -name "transpiler_output_*")
+
+          if [ $copy_failed -eq 1 ]; then
+            echo "One or more copy operations failed."
+            exit 1
+          fi
+
+      - name: Set aritfact name
+        id: artifact-name
+        run: |
+          echo "merged=transpiler-output-merged-proofs" >> $GITHUB_OUTPUT
+
+      - name: Upload merged artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.artifact-name.outputs.merged }}
+          path: |
+            ${{ steps.strings.outputs.artifact-dir }}/transpiler_output_*
+
+
+  verify-proof-producer-proofs:
+    name: Verify proof-producer proofs with EVM-placeholder
+    needs:
+      - handle-syncwith
+      - build-and-generate-proofs
+      - prepare-targets
+    uses: NilFoundation/evm-placeholder-verification/.github/workflows/reusable-verify-proofs.yml@5bb7c4b0790f56b3a339e33ba442816fac17ab88
+    with:
+      artifact-name: ${{ needs.build-and-generate-proofs.outputs.artifact-name }}
+      evm-placeholder-verification-ref: 5bb7c4b0790f56b3a339e33ba442816fac17ab88
+      refs: ${{ needs.handle-syncwith.outputs.prs-refs }}
+      test-names: ${{ needs.prepare-targets.outputs.evm-targets }}

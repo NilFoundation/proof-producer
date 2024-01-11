@@ -54,27 +54,18 @@ jobs:
       artifact-name: ${{ steps.set-artifact-name.outputs.artifact-name }}
 
     steps:
-      - name: Install dependencies
-        run: |
-          env && \
-          sudo apt update && \
-          sudo apt install -y \
-            build-essential \
-            libssl-dev \
-            cmake \
-            libicu-dev \
-            libspdlog-dev \
-            liblz4-dev \
-            libgnutls28-dev \
-            libprotobuf-dev \
-            libyaml-cpp-dev \
-            libsctp-dev \
-            ragel \
-            xfslibs-dev \
-            systemtap-sdt-dev \
-            libc-ares-dev \
-            libhwloc-dev
+      - name: Checkout proof-producer
+        uses: actions/checkout@v4
+        with:
+          repository: 'NilFoundation/proof-producer'
+          ref: ${{ inputs.proof-producer-ref }}
+          submodules: 'recursive'
 
+      - name: Install dependencies
+        uses: ./.github/actions/composite-install-dependecies
+
+      - name: Install fixes to GH worker
+        run: |
           # https://github.com/actions/runner-images/issues/8659#issuecomment-1853177960
           sudo apt-get install --allow-downgrades \
             libstdc++6=12.3.0-1ubuntu1~22.04 \
@@ -85,13 +76,6 @@ jobs:
           git --version
           cc --version
           cmake --version
-
-      - name: Checkout proof-producer
-        uses: actions/checkout@v4
-        with:
-          repository: 'NilFoundation/proof-producer'
-          ref: ${{ inputs.proof-producer-ref }}
-          submodules: 'recursive'
 
       - name: Checkout modules to specified refs
         if: inputs.refs != ''

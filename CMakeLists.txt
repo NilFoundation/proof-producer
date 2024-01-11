@@ -65,14 +65,14 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/application")
 
 if(NOT PROOF_PRODUCER_VERSION)
     find_program(GIT_EXECUTABLE NAMES git PATHS /usr/bin /usr/local/bin)
+    message(STATUS "Running command: ${GIT_EXECUTABLE} describe --tags HEAD")
     execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags HEAD
-                    OUTPUT_VARIABLE DESCRIBE_OUTBUT
+                    OUTPUT_VARIABLE DESCRIBE_OUTPUT
                     OUTPUT_STRIP_TRAILING_WHITESPACE
                     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    message(STATUS "Git describe output: ${DESCRIBE_OUTPUT}")
 
-    if(NOT ("${DESCRIBE_OUTBUT}" STREQUAL "${PROOF_PRODUCER_VERSION}"))
-        set(PROOF_PRODUCER_VERSION "${DESCRIBE_OUTBUT}")
-    endif()
+    set(PROOF_PRODUCER_VERSION "${DESCRIBE_OUTPUT}")
 
     if(NOT PROOF_PRODUCER_VERSION)
         message(FATAL_ERROR
