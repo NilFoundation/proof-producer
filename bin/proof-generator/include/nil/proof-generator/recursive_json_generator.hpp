@@ -55,13 +55,11 @@ namespace nil {
             return strstr.str();
         }
 
-        template<typename PlaceholderParams, typename ProofType, typename CommonDataType>
+        template<typename PlaceholderParams, typename ProofType>
         struct recursive_json_generator{
             using field_type = typename PlaceholderParams::field_type;
             using arithmetization_params = typename PlaceholderParams::arithmetization_params;
             using proof_type = ProofType;
-            using common_data_type = CommonDataType;
-            using verification_key_type = typename common_data_type::verification_key_type;
             using commitment_scheme_type = typename PlaceholderParams::commitment_scheme_type;
             using constraint_system_type = typename PlaceholderParams::constraint_system_type;
             using columns_rotations_type = std::array<std::set<int>, PlaceholderParams::total_columns>;
@@ -241,9 +239,8 @@ namespace nil {
             }
 
             static inline std::string generate_proof_json(
-                const verification_key_type &vk,
-                const typename assignment_table_type::public_input_container_type &public_inputs,
                 const proof_type &proof,
+                const typename assignment_table_type::public_input_container_type &public_inputs,
                 const std::array<std::size_t, arithmetization_params::public_input_columns> public_input_sizes
             ){
                 BOOST_LOG_TRIVIAL(info) << "Generate input..." << std::endl;
@@ -269,15 +266,6 @@ namespace nil {
                     }
                 }
                 out << std::endl << "\t]}," << std::endl;
-
-                out << "\t{\"array\":[" << std::endl;
-                out << "\t\t" << generate_hash<typename PlaceholderParams::transcript_hash_type>(
-                    vk.constraint_system_hash
-                ) << "," << std::endl;
-                out << "\t\t" << generate_hash<typename PlaceholderParams::transcript_hash_type>(
-                    vk.fixed_values_commitment
-                ) << std::endl;
-                out << "\t]}," << std::endl;
 
                 out << "\t{\"struct\":[" << std::endl;
                 out << "\t\t{\"array\":[" << std::endl;

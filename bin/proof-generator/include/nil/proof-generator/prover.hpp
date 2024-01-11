@@ -280,10 +280,9 @@ namespace nil {
                     output_file.open(proof_file);
                     output_file << recursive_json_generator<
                         placeholder_params,
-                        nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>,
-                        typename nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params>::preprocessed_data_type::common_data_type
+                        nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>
                     >::generate_proof_json(
-                        public_preprocessed_data.common_data.vk, assignment_table.public_inputs(), proof, public_input_sizes
+                        proof, assignment_table.public_inputs(), public_input_sizes
                     );
                     output_file.close();
                     BOOST_LOG_TRIVIAL(info) << "JSON written" << std::endl;
