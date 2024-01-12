@@ -57,13 +57,37 @@
 
 #include <nil/proof-producer/recursive_json_generator.hpp>
 
+bool read_buffer_from_file(std::ifstream &ifile, std::vector<std::uint8_t> &v) {
+    char c;
+    char c1;
+    uint8_t b;
+
+    ifile >> c;
+    if (c != '0')
+        return false;
+    ifile >> c;
+    if (c != 'x')
+        return false;
+    while (ifile) {
+        std::string str = "";
+        ifile >> c >> c1;
+        if (!isxdigit(c) || !isxdigit(c1))
+            return false;
+        str += c;
+        str += c1;
+        b = stoi(str, 0, 0x10);
+        v.push_back(b);
+    }
+    return true;
+}
+
 template <typename BlueprintFieldType, typename ArithmetizationParams>
 int instanciated_main(boost::filesystem::path proof_file_path,
                       boost::filesystem::path assignment_table_file_path,
                       boost::filesystem::path circuit_file_path,
                       std::size_t used_public_input_rows,
                       std::size_t used_shared_rows) {
-    
+
     using ConstraintSystemType =
         nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
     using TableDescriptionType =
@@ -140,9 +164,9 @@ int instanciated_main(boost::filesystem::path proof_file_path,
     using ProofType = nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>;
         using proof_marshalling_type =
         nil::crypto3::marshalling::types::placeholder_proof<TTypeBase, ProofType>;
-        
-    ProofType proof;
 
+    ProofType proof;
+    BOOST_LOG_TRIVIAL(info) << "Proof Type = " << typeid(ProofType).name() << std::endl;
     {
         std::ifstream iproof;
         iproof.open(proof_file_path, std::ios_base::binary | std::ios_base::in);
@@ -150,17 +174,13 @@ int instanciated_main(boost::filesystem::path proof_file_path,
             BOOST_LOG_TRIVIAL(error) << "Cannot open " << proof_file_path;
             return false;
         }
+
         std::vector<std::uint8_t> v;
-        iproof.seekg(0, std::ios_base::end);
-        const auto fsize = iproof.tellg();
-        v.resize(fsize);
-        iproof.seekg(0, std::ios_base::beg);
-        iproof.read(reinterpret_cast<char*>(v.data()), fsize);
-        if (!iproof) {
-            BOOST_LOG_TRIVIAL(error) << "Cannot parse input file " << proof_file_path;
+        if (!read_buffer_from_file(iproof, v)) {
+            BOOST_LOG_TRIVIAL(error) << "Cannot parse input file " << proof_file_path << std::endl;
             return false;
         }
-        iproof.close();
+
         proof_marshalling_type marshalled_proof_data;
         auto read_iter = v.begin();
         auto status = marshalled_proof_data.read(read_iter, v.size());
@@ -234,7 +254,7 @@ int main(int argc, char *argv[]) {
     std::size_t used_public_input_rows;
     std::size_t used_shared_rows;
     std::string log_level;
-    
+
     // We use Boost log trivial severity levels, these are string representations of their names
     std::map<std::string, boost::log::trivial::severity_level> log_options{
         {"trace", boost::log::trivial::trace},
@@ -250,7 +270,7 @@ int main(int argc, char *argv[]) {
     } else {
         log_level = "info";
     }
-    
+
     if (log_options.find(log_level) == log_options.end()) {
         BOOST_LOG_TRIVIAL(error) << "Invalid command line argument -l (log level): " << log_level << std::endl;
         std::cout << options_desc << std::endl;
