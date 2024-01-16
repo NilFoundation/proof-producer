@@ -216,6 +216,7 @@ int main(int argc, char *argv[]) {
             ("used-public-input-rows,p", boost::program_options::value<std::size_t>(), "Public input columns expected size")
             ("used-shared-rows,s", boost::program_options::value<std::size_t>(), "Shared column expected size")
             ("log-level,l", boost::program_options::value<std::string>(), "Log level (trace, debug, info, warning, error, fatal)")
+            ("elliptic-curve-type,e", boost::program_options::value<std::string>(), "Native elliptic curve type (pallas, vesta, ed25519, bls12381)")
             ;
     // clang-format on
 
@@ -316,7 +317,30 @@ int main(int argc, char *argv[]) {
         used_shared_rows = 0;
     }
 
-    using BlueprintFieldType = typename nil::crypto3::algebra::curves::pallas::base_field_type;
+    std::string elliptic_curve;
+
+    if (vm.count("elliptic-curve-type")) {
+        elliptic_curve = vm["elliptic-curve-type"].as<std::string>();
+    } else {
+        std::cerr << "Invalid command line argument - elliptic curve type is not specified" << std::endl;
+        std::cout << options_desc << std::endl;
+        return 1;
+    }
+
+    std::map<std::string, int> curve_options{
+        {"pallas", 0},
+        {"vesta", 1},
+        {"ed25519", 2},
+        {"bls12381", 3},
+    };
+
+    if (curve_options.find(elliptic_curve) == curve_options.end()) {
+        std::cerr << "Invalid command line argument -e (Native elliptic curve type): " << elliptic_curve << std::endl;
+        std::cout << options_desc << std::endl;
+        return 1;
+    }
+
+
     constexpr std::size_t ComponentConstantColumns = 5;
     constexpr std::size_t LookupConstantColumns = 30;
     constexpr std::size_t ComponentSelectorColumns = 30;
@@ -331,5 +355,25 @@ int main(int argc, char *argv[]) {
                 nil::crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns,
                                                                     SelectorColumns>;
 
-    return instanciated_main<BlueprintFieldType, ArithmetizationParams>(proof_file_path, assignment_table_file_path, circuit_file_path, used_public_input_rows, used_shared_rows);
+    switch (curve_options[elliptic_curve]) {
+        case 0: {
+            using curve_type = nil::crypto3::algebra::curves::pallas;
+            using BlueprintFieldType = typename curve_type::base_field_type;
+            return instanciated_main<BlueprintFieldType, ArithmetizationParams>(proof_file_path, assignment_table_file_path, circuit_file_path, used_public_input_rows, used_shared_rows);
+        }
+        case 1: {
+            BOOST_LOG_TRIVIAL(error) << "vesta curve based circuits are not supported yet";
+            return 1;
+        }
+        case 2: {
+            BOOST_LOG_TRIVIAL(error) << "ed25519 curve based circuits are not supported yet";
+            return 1;
+        }
+        case 3: {
+            using curve_type = nil::crypto3::algebra::curves::bls12<381>;
+            using BlueprintFieldType = typename curve_type::base_field_type;
+            BOOST_LOG_TRIVIAL(error) << "bls12-381 curve based circuits proving is temporarily disabled";
+        }
+    };
+
 }
