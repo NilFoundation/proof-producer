@@ -123,9 +123,8 @@ namespace nil {
 
         }    // namespace detail
 
+        template <typename BlueprintFieldType>
         bool prover(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file, bool skip_verification) {
-            using curve_type = nil::crypto3::algebra::curves::pallas;
-            using BlueprintFieldType = typename curve_type::base_field_type;
             constexpr std::size_t WitnessColumns = 15;
             constexpr std::size_t PublicInputColumns = 1;
             constexpr std::size_t ConstantColumns = 35;

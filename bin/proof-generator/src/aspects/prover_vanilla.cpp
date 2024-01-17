@@ -56,6 +56,7 @@ namespace nil {
                 ("shard0-mem-scale", boost::program_options::value<int>(), "If set allocates this many times more memory for shard #0 compared to other shards.")
 #endif
                 ("skip-verification", "If set - skips verifiyng step of the generated proof");
+                ("elliptic-curve-type,e", boost::program_options::value<std::string>(), "Native elliptic curve type (pallas, vesta, ed25519, bls12381), default: pallas");
                 // clang-format on
                 cli.add(options);
             }
@@ -75,7 +76,7 @@ namespace nil {
                     }
 
                 std::string log_level = "info";
-                
+
                 if (vm.count("log-level")) {
                     log_level = vm["log-level"].as<std::string>();
                 }
@@ -121,7 +122,7 @@ namespace nil {
                 } else {
                     BOOST_LOG_TRIVIAL(error) << "Assignment table file path not specified";
                 }
-                
+
                 if (vm.count("proof")) {
                     proof_file_path = vm["proof"].as<std::string>();
                 } else {
@@ -137,6 +138,24 @@ namespace nil {
                     shard0_mem_scale = vm["shard0-mem-scale"].as<int>();
                 }
 #endif
+                std::string elliptic_curve = "pallas";
+
+                if (vm.count("elliptic-curve-type")) {
+                    elliptic_curve = vm["elliptic-curve-type"].as<std::string>();
+                }
+
+                std::map<std::string, int> curve_options{
+                    {"pallas", detail::PALLAS},
+                    {"vesta", detail::VESTA},
+                    {"ed25519", detail::ED25519},
+                    {"bls12381", detail::BLS12381},
+                };
+
+                if (curve_options.find(elliptic_curve) == curve_options.end()) {
+                    BOOST_LOG_TRIVIAL(error) << "Invalid command line argument -e (Native elliptic curve type): " << elliptic_curve;
+                } else {
+                    BOOST_LOG_TRIVIAL(debug) << "Elliptic curve type not specified, using default: " << elliptic_curve;
+                }
             }
 
             boost::filesystem::path prover_vanilla::default_config_path() const {
@@ -157,6 +176,10 @@ namespace nil {
 
             bool prover_vanilla::is_skip_verification_mode_on() const {
                 return skip_verification;
+            }
+
+            detail::CurveType prover_vanilla::curve_type() const {
+                return curve_type_;
             }
 
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED

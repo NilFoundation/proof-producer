@@ -106,9 +106,24 @@ inline bool configure_aspects(boost::application::context &ctx, Application &app
 struct prover {
     prover(boost::application::context &context) : context_(context) {
     }
+
+    template <typename BlueprintFieldType>
+    int run_prover() {
+        auto prover_task = [&] {
+            return nil::proof_generator::prover<BlueprintFieldType>(circuit_file_path, assignment_file_path, proof_file, skip_verification) ? 0 : 1;
+        };
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-    int run_actor(int ac, char **av) {
+        // For multithreaded version we have to launch Seastar stuff first
         using namespace nil::actor;
+        int shard0_mem_scale = context_.find<nil::proof_generator::aspects::prover_vanilla>()->get_shard0_mem_scale();
+        std::vector<std::string> arguments = {
+            "unused_program_name", "--shard0-mem-scale", std::to_string(shard0_mem_scale) };
+
+        // Constructing argc and argv
+        std::vector<char*> argv;
+        for (const auto& arg : arguments)
+            argv.push_back((char*)arg.data());
+        argv.push_back(nullptr);
 
         // Don't interfere with actor signal handling
         sigset_t mask;
@@ -123,13 +138,13 @@ struct prover {
         }
 
         nil::actor::app_template app;
-        return app.run(ac, av, [this, &app] {
-            return nil::actor::async([&] {
-                return nil::proof_generator::prover(circuit_file_path, assignment_file_path, proof_file, skip_verification) ? 0 : 1;
-            });
+        return app.run(arguments.size(), argv.data(), [this, &app, &prover_task] {
+            return nil::actor::async(prover_task);
         });
-    }
+#else
+        return prover_task();
 #endif
+    }
 
     int operator()() {
         BOOST_APPLICATION_FEATURE_SELECT
@@ -141,21 +156,26 @@ struct prover {
 
         proof_file = context_.find<nil::proof_generator::aspects::prover_vanilla>()->output_proof_file_path();
 
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-        int shard0_mem_scale = context_.find<nil::proof_generator::aspects::prover_vanilla>()->get_shard0_mem_scale();
-        std::vector<std::string> arguments = { 
-            "unused_program_name", "--shard0-mem-scale", std::to_string(shard0_mem_scale) };
-
-        // Constructing argc and argv
-        std::vector<char*> argv;
-        for (const auto& arg : arguments)
-            argv.push_back((char*)arg.data());
-        argv.push_back(nullptr);
-
-        return run_actor(arguments.size(), argv.data());
-#else
-        return nil::proof_generator::prover(circuit_file_path, assignment_file_path, proof_file, skip_verification) ? 0 : 1;
-#endif
+        nil::proof_generator::detail::CurveType curve_type = context_.find<nil::proof_generator::aspects::prover_vanilla>()->curve_type();
+        switch (curve_type) {
+            case nil::proof_generator::detail::PALLAS: {
+                using curve_type = nil::crypto3::algebra::curves::pallas;
+                using BlueprintFieldType = typename curve_type::base_field_type;
+                return run_prover<BlueprintFieldType>();
+            }
+            case nil::proof_generator::detail::VESTA: {
+                BOOST_LOG_TRIVIAL(error) << "vesta curve based circuits are not supported yet";
+                return 1;
+            }
+            case nil::proof_generator::detail::ED25519: {
+                BOOST_LOG_TRIVIAL(error) << "ed25519 curve based circuits are not supported yet";
+                return 1;
+            }
+            case nil::proof_generator::detail::BLS12381: {
+                BOOST_LOG_TRIVIAL(error) << "bls12-381 curve based circuits proving is temporarily disabled";
+                return 1;
+            }
+        };
     }
 
     boost::filesystem::path proof_file;

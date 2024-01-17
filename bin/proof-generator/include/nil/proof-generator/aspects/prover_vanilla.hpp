@@ -22,14 +22,23 @@
 #include <iostream>
 #include <numeric>
 
-#include <nil/proof-generator/detail/configurable.hpp>
 #include <nil/proof-generator/aspects/path.hpp>
+#include <nil/proof-generator/detail/configurable.hpp>
 
 #include <nil/dbms/plugin/options_description.hpp>
 #include <nil/dbms/plugin/variables_map.hpp>
 
 namespace nil {
     namespace proof_generator {
+        namespace detail {
+            enum CurveType {
+                PALLAS,
+                VESTA,
+                ED25519,
+                BLS12381
+            };
+        } // namespace detail
+
         namespace aspects {
             struct prover_vanilla
                 : public detail::configurable<dbms::plugin::variables_map, dbms::plugin::cli_options_description,
@@ -57,6 +66,8 @@ namespace nil {
 
                 bool is_skip_verification_mode_on() const;
 
+                detail::CurveType curve_type() const;
+
                 boost::filesystem::path default_config_path() const;
 
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
@@ -69,6 +80,7 @@ namespace nil {
                 boost::filesystem::path assignment_table_file_path;
                 boost::filesystem::path proof_file_path;
                 bool skip_verification = false;
+                detail::CurveType curve_type_;
 
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
                 int shard0_mem_scale = 1;
