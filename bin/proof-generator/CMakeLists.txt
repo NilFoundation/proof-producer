@@ -43,23 +43,8 @@ if(ZK_PLACEHOLDER_DEBUG)
     add_definitions(-DZK_PLACEHOLDER_DEBUG_ENABLED)
 endif()
 
-if (NOT Boost_FOUND AND NOT CMAKE_CROSSCOMPILING)
+if (NOT Boost_FOUND)
     find_package(Boost COMPONENTS REQUIRED filesystem log log_setup program_options thread system)
-elseif (CMAKE_CROSSCOMPILING)
-    if (NOT TARGET boost)
-        include(ExternalProject)
-        set(Boost_LIBRARIES boost_random)
-        externalproject_add(boost
-                PREFIX ${CMAKE_BINARY_DIR}/libs/boost
-                GIT_REPOSITORY git@github.com:boostorg/boost.git
-                GIT_TAG boost-1.77.0
-                BUILD_IN_SOURCE TRUE
-                CMAKE_ARGS -DCMAKE_CROSSCOMPILING_EMULATOR=${CMAKE_CROSSCOMPILING_EMULATOR} -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-                BUILD_COMMAND cmake --build . --target ${Boost_LIBRARIES}
-                INSTALL_COMMAND "")
-    else ()
-        set(Boost_LIBRARIES boost_random)
-    endif ()
 endif ()
 
 cm_setup_version(VERSION 0.1.0)

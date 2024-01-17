@@ -44,6 +44,8 @@ jobs:
   prepare-targets:
     name: Prepare targets strings
     runs-on: ubuntu-22.04
+    if: |
+      always() && !cancelled()
     outputs:
       evm-targets: ${{ steps.get-targets.outputs.evm-targets }}
       prover-targets: ${{ steps.get-targets.outputs.prover-targets }}
@@ -65,6 +67,9 @@ jobs:
     name: Get zkLLVM run to use artifacts from
     needs:
       - handle-syncwith
+    if: |
+      always() && !cancelled() &&
+      (needs.handle-syncwith.result == 'success' || needs.handle-syncwith.result == 'skipped')
     runs-on: ubuntu-22.04
     outputs:
       run-id: ${{ steps.get-run-id.outputs.run-id }}
@@ -127,10 +132,16 @@ jobs:
   build-and-generate-proofs:
     name: Build prover, generate proofs for circuits
     runs-on: ubuntu-22.04
+    container: ubuntu:jammy-20240111
     needs:
       - handle-syncwith
       - get-zkllvm-run
       - prepare-targets
+    if: |
+      always() && !cancelled() &&
+      (needs.handle-syncwith.result == 'success' || needs.handle-syncwith.result == 'skipped') &&
+      (needs.get-zkllvm-run.result == 'success' || needs.get-zkllvm-run.result == 'skipped') &&
+      (needs.prepare-targets.result == 'success' || needs.prepare-targets.result == 'skipped')
     strategy:
       matrix:
         cpp-compiler: [ g++, clang++ ]
@@ -138,8 +149,20 @@ jobs:
       fail-fast: false
     outputs:
       artifact-name: ${{ steps.artifact-name.outputs.merged }}
+    defaults:
+      run:
+        shell: bash
 
     steps:
+      # It takes centuries for GH developers to fix bugs (https://github.com/actions/runner/issues/2058),
+      #   that's why we use `/__w/proof-producer/proof-producer` instead of ${{ github.workspace }}
+
+      - name: Install Git CLI for Ubuntu container
+        # GH runner image does not need it
+        run: |
+          apt-get update
+          apt-get install git -y
+
       - name: Checkout proof-producer
         uses: actions/checkout@v4
         with:
@@ -149,45 +172,34 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/composite-install-dependecies
 
-      - name: Install fixes to GH worker
-        run: |
-          # https://github.com/actions/runner-images/issues/8659#issuecomment-1853177960
-          sudo apt-get install --allow-downgrades \
-            libstdc++6=12.3.0-1ubuntu1~22.04 \
-            libgcc-s1=12.3.0-1ubuntu1~22.04
-
       - name: Print toolchain information
         run: |
           git --version
           cc --version
           cmake --version
 
+      - name: Mark git directory as safe
+        # https://github.com/actions/checkout/issues/766
+        run: |
+          git config --global --add safe.directory $PWD
+
       - name: Checkout modules to specified refs
         if: ${{ needs.handle-syncwith.outputs.prs-refs }} != ''
         uses: NilFoundation/ci-cd/actions/recursive-checkout@v1.1.1
         with:
           paths: |
-            ${{ github.workspace }}/**
-            !${{ github.workspace }}/**/.git/**
+            /__w/proof-producer/proof-producer/**
+            !/__w/proof-producer/proof-producer/**/.git/**
           refs: ${{ needs.handle-syncwith.outputs.prs-refs }}
 
       - name: Set usefull strings
         id: strings
-        shell: bash
         run: |
-          echo "build-dir=${{ github.workspace }}/build" >> $GITHUB_OUTPUT
-          echo "dependencies-dir=${{ github.workspace }}/../dependencies" >> $GITHUB_OUTPUT
-          echo "artifact-dir=$(realpath ${{ github.workspace }}/../artifacts)" >> $GITHUB_OUTPUT
+          echo "build-dir=/__w/proof-producer/proof-producer/build" >> $GITHUB_OUTPUT
+          echo "dependencies-dir=/__w/proof-producer/proof-producer/../dependencies" >> $GITHUB_OUTPUT
+          echo "artifact-dir=$(realpath /__w/proof-producer/proof-producer/../artifacts)" >> $GITHUB_OUTPUT
 
-          # Get platform version
-          if [[ ${{ runner.os }} == 'Linux' ]]; then
-            platform_version=$(lsb_release -rs)
-            proc_number=$(nproc)
-          elif [[ ${{ runner.os }} == 'macOS' ]]; then
-            platform_version=$(sw_vers -productVersion)
-            proc_number=$(sysctl -n hw.logicalcpu)
-          fi
-          echo "platform-version=${platform_version}" >> $GITHUB_OUTPUT
+          echo "platform-version=$(lsb_release -rs)" >> $GITHUB_OUTPUT
 
       - name: Download circuits and assignments artifact
         uses: dawidd6/action-download-artifact@v3
@@ -198,7 +210,7 @@ jobs:
           run_id: ${{ needs.get-zkllvm-run.outputs.run-id }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install boost
+      - name: Install Boost
         uses: MarkusJx/install-boost@v2.4.4
         id: install-boost
         with:
@@ -211,12 +223,16 @@ jobs:
       - name: Configure CMake
         env:
           BOOST_ROOT: "${{ steps.install-boost.outputs.BOOST_ROOT }}"
+        # The MarkusJx/install-boost action names libraries in the format lib...-x64.(a|so). CMake's FindBoost module
+        #   checks whether the CMAKE_CXX_COMPILER_ARCHITECTURE_ID variable is set and adds an architecture suffix based on it. However,
+        #   this variable is not set, so we need to manually specify the suffix using Boost_ARCHITECTURE.
         run: |
           cmake \
             -G "Unix Makefiles" \
             -B build \
             -DCMAKE_CXX_COMPILER=${{ matrix.cpp-compiler }} \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+            -DBoost_ARCHITECTURE=-x64
 
       - name: Build proof-producer
         working-directory: ${{ steps.strings.outputs.build-dir }}
@@ -236,7 +252,7 @@ jobs:
           fi
           targets_str=$(echo "${{ needs.prepare-targets.outputs.prover-targets }}" | awk '{$1=$1};1' | sed '/^$/d' | tr '\n' ' ' | sed 's/ $//')
           echo "targets from input: ${targets_str}"
-          ${{ github.workspace }}/tests/make_proof_for_pairs.sh ${extra_args} ${targets_str}
+          /__w/proof-producer/proof-producer/tests/make_proof_for_pairs.sh ${extra_args} ${targets_str}
 
       - name: Download transpiler output artifact
         id: download-to-artifact
@@ -291,6 +307,11 @@ jobs:
       - handle-syncwith
       - build-and-generate-proofs
       - prepare-targets
+    if: |
+      always() && !cancelled() &&
+      (needs.handle-syncwith.result == 'success' || needs.handle-syncwith.result == 'skipped') &&
+      (needs.build-and-generate-proofs.result == 'success' || needs.build-and-generate-proofs.result == 'skipped') &&
+      (needs.prepare-targets.result == 'success' || needs.prepare-targets.result == 'skipped')
     uses: NilFoundation/evm-placeholder-verification/.github/workflows/reusable-verify-proofs.yml@5bb7c4b0790f56b3a339e33ba442816fac17ab88
     with:
       artifact-name: ${{ needs.build-and-generate-proofs.outputs.artifact-name }}

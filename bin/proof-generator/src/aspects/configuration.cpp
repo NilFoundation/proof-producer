@@ -87,6 +87,10 @@ namespace nil {
             }
 
             void configuration::write_default_config(const boost::filesystem::path &path) {
+                if (!path.parent_path().empty() && !boost::filesystem::exists(path.parent_path())) {
+                    boost::filesystem::create_directories(path.parent_path());
+                }
+
                 boost::property_tree::ptree tree;
 
                 for (const auto &option : cfgv.options()) {

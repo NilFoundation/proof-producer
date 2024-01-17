@@ -43,6 +43,8 @@ on:
 
 jobs:
   build-and-test:
+    # Testing of proof producer's PRs is run inside container. If GH worker update broke current action,
+    #   consider using container here as well.
     name: Build prover, prove provided circuits
     runs-on: ubuntu-22.04
     strategy:
@@ -123,12 +125,16 @@ jobs:
       - name: Configure CMake
         env:
           BOOST_ROOT: "${{ steps.install-boost.outputs.BOOST_ROOT }}"
+        # The MarkusJx/install-boost action names libraries in the format lib...-x64.(a|so). CMake's FindBoost module
+        #   checks whether the CMAKE_CXX_COMPILER_ARCHITECTURE_ID variable is set and adds an architecture suffix based on it. However,
+        #   this variable is not set, so we need to manually specify the suffix using Boost_ARCHITECTURE.
         run: |
           cmake \
             -G "Unix Makefiles" \
             -B build \
             -DCMAKE_CXX_COMPILER=${{ matrix.cpp-compiler }} \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+            -DBoost_ARCHITECTURE=-x64
 
       - name: Build proof-producer
         working-directory: ${{ steps.strings.outputs.build-dir }}
