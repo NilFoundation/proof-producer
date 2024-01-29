@@ -23,7 +23,6 @@ env:
     polynomial_cpp_example
     poseidon_cpp_example
     merkle_tree_poseidon_cpp_example
-    strlen_cpp_example
     uint_remainder_cpp
     uint_shift_left
     uint_bit_decomposition

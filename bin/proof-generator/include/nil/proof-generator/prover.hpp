@@ -147,16 +147,17 @@ namespace nil {
 
         }    // namespace detail
 
+        constexpr std::size_t WitnessColumns = 15;
+        constexpr std::size_t PublicInputColumns = 1;
+        constexpr std::size_t ComponentConstantColumns = 5;
+        constexpr std::size_t LookupConstantColumns = 30;
+        constexpr std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
+        constexpr std::size_t ComponentSelectorColumns = 50;
+        constexpr std::size_t LookupSelectorColumns = 6;
+        constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
+
         template <typename BlueprintFieldType>
         bool prover(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file, bool skip_verification) {
-            constexpr std::size_t WitnessColumns = 15;
-            constexpr std::size_t PublicInputColumns = 1;
-            constexpr std::size_t ComponentConstantColumns = 5;
-            constexpr std::size_t LookupConstantColumns = 30;
-            constexpr std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
-            constexpr std::size_t ComponentSelectorColumns = 30;
-            constexpr std::size_t LookupSelectorColumns = 6;
-            constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
 
             using ArithmetizationParams =
                 NAMESPACE::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns,
@@ -322,14 +323,6 @@ namespace nil {
 
         template <typename BlueprintFieldType>
         bool verify(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file, bool skip_verification) {
-            constexpr std::size_t WitnessColumns = 15;
-            constexpr std::size_t PublicInputColumns = 1;
-            constexpr std::size_t ComponentConstantColumns = 5;
-            constexpr std::size_t LookupConstantColumns = 30;
-            constexpr std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
-            constexpr std::size_t ComponentSelectorColumns = 30;
-            constexpr std::size_t LookupSelectorColumns = 6;
-            constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
 
             using ArithmetizationParams =
                 NAMESPACE::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns,
