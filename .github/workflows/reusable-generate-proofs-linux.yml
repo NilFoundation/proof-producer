@@ -79,12 +79,23 @@ jobs:
           cc --version
           cmake --version
 
-      - name: Checkout modules to specified refs
+      # We need to checkout current repo with full history
+      - name: Checkout current repo to specified ref
+        if: inputs.refs != ''
+        uses: NilFoundation/ci-cd/actions/recursive-checkout@v1.1.1
+        with:
+          paths: |
+            ${{ github.workspace }}/
+          refs: ${{ inputs.refs }}
+          fetch-depth: 0
+
+      - name: Checkout submodules to specified refs
         if: inputs.refs != ''
         uses: NilFoundation/ci-cd/actions/recursive-checkout@v1.1.1
         with:
           paths: |
             ${{ github.workspace }}/**
+            !${{ github.workspace }}/
             !${{ github.workspace }}/**/.git/**
           refs: ${{ inputs.refs }}
 
