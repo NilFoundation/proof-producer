@@ -83,13 +83,13 @@ jobs:
           zkllvm_ref="master"
           zkllvm_repo="NilFoundation/zkLLVM"
 
-          echo "$prs_refs" | while read line; do
-            echo $line
+          while read -r line; do
+            echo "$line"
             if [[ $line == "${zkllvm_repo}:"* ]]; then
-              zkllvm_ref=$(echo $line | cut -d ' ' -f 2)
+              zkllvm_ref=$(echo "$line" | cut -d ' ' -f 2)
               break
             fi
-          done
+          done <<< "$prs_refs"
 
           if [[ $zkllvm_ref == refs/pull/* ]]; then
             echo "Considering reference ${zkllvm_ref} a pr ref"
@@ -189,6 +189,7 @@ jobs:
         with:
           paths: |
             /__w/proof-producer/proof-producer/**
+            !/__w/proof-producer/proof-producer/
             !/__w/proof-producer/proof-producer/**/.git/**
           refs: ${{ needs.handle-syncwith.outputs.prs-refs }}
 
