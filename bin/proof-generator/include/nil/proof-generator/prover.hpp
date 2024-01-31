@@ -219,6 +219,7 @@ namespace nil {
                 BlueprintFieldType, ArithmetizationParams
             >;
 
+            // Lambdas and grinding bits should be passed threw preprocessor directives
             std::size_t table_rows_log = std::ceil(std::log2(table_description.rows_amount));
             using lpc_params_type = NAMESPACE::zk::commitments::list_polynomial_commitment_params<
                 Hash,
