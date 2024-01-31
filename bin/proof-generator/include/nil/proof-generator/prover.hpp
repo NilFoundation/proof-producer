@@ -127,8 +127,12 @@ namespace nil {
         bool prover(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file, bool skip_verification) {
             constexpr std::size_t WitnessColumns = 15;
             constexpr std::size_t PublicInputColumns = 1;
-            constexpr std::size_t ConstantColumns = 35;
-            constexpr std::size_t SelectorColumns = 36;
+            constexpr std::size_t ComponentConstantColumns = 5;
+            constexpr std::size_t LookupConstantColumns = 30;
+            constexpr std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
+            constexpr std::size_t ComponentSelectorColumns = 30;
+            constexpr std::size_t LookupSelectorColumns = 6;
+            constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
 
             using ArithmetizationParams =
                 NAMESPACE::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns,
@@ -229,7 +233,7 @@ namespace nil {
 
             auto fri_params = proof_generator::detail::create_fri_params<typename lpc_type::fri_type, BlueprintFieldType>(table_rows_log);
             std::size_t permutation_size =
-                table_description.witness_columns + table_description.public_input_columns + table_description.constant_columns;
+                table_description.witness_columns + table_description.public_input_columns + ComponentConstantColumns;
             lpc_scheme_type lpc_scheme(fri_params);
 
             BOOST_LOG_TRIVIAL(info) << "Preprocessing public data..." << std::endl;
@@ -256,7 +260,7 @@ namespace nil {
             } else {
                 BOOST_LOG_TRIVIAL(info) << "Generating proof..." << std::endl;
                 using ProofType = NAMESPACE::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>;
-BOOST_LOG_TRIVIAL(info) << "Proof Type = " << typeid(ProofType).name() << std::endl;
+                BOOST_LOG_TRIVIAL(info) << "Proof Type = " << typeid(ProofType).name() << std::endl;
 
                 ProofType proof = NAMESPACE::zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params>::process(
                     public_preprocessed_data, private_preprocessed_data, table_description, constraint_system,
