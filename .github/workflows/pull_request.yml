@@ -210,6 +210,12 @@ jobs:
           path: ${{ steps.strings.outputs.artifact-dir }}
           run_id: ${{ needs.get-zkllvm-run.outputs.run-id }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
+          skip_unpack: true  # It can't unpack such large files (>2Gb for some circuits)
+
+      - name: Extract circuits and assignments artifact
+        working-directory: ${{ steps.strings.outputs.artifact-dir }}
+        run: |
+          unzip ${{ env.CAA_ARTIFACT_NAME }}.zip
 
       - name: Install Boost
         uses: MarkusJx/install-boost@v2.4.4
