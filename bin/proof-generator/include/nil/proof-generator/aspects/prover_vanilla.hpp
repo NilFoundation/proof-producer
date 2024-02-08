@@ -70,9 +70,6 @@ namespace nil {
 
                 boost::filesystem::path default_config_path() const;
 
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-                int get_shard0_mem_scale() const;
-#endif
             protected:
                 boost::shared_ptr<path> path_aspect;
 
@@ -82,9 +79,6 @@ namespace nil {
                 bool skip_verification = false;
                 detail::CurveType curve_type_;
 
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-                int shard0_mem_scale = 1;
-#endif
             };
         }    // namespace aspects
     }        // namespace proof_generator

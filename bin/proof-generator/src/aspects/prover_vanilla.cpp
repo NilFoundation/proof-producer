@@ -52,9 +52,6 @@ namespace nil {
                 ("circuit,c", boost::program_options::value<std::string>(), "Circuit input file")
                 ("assignment-table,t", boost::program_options::value<std::string>(), "Assignment table input file")
                 ("log-level,l", boost::program_options::value<std::string>(), "Log level (trace, debug, info, warning, error, fatal)")
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-                ("shard0-mem-scale", boost::program_options::value<int>(), "If set allocates this many times more memory for shard #0 compared to other shards.")
-#endif
                 ("skip-verification", "If set - skips verifiyng step of the generated proof");
                 ("elliptic-curve-type,e", boost::program_options::value<std::string>(), "Native elliptic curve type (pallas, vesta, ed25519, bls12381), default: pallas");
                 // clang-format on
@@ -133,11 +130,6 @@ namespace nil {
                 if (vm.count("skip-verification")) {
                     skip_verification = true;
                 }
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-                if (vm.count("shard0-mem-scale")) {
-                    shard0_mem_scale = vm["shard0-mem-scale"].as<int>();
-                }
-#endif
                 std::string elliptic_curve = "pallas";
 
                 if (vm.count("elliptic-curve-type")) {
@@ -181,12 +173,6 @@ namespace nil {
             detail::CurveType prover_vanilla::curve_type() const {
                 return curve_type_;
             }
-
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-            int prover_vanilla::get_shard0_mem_scale() const {
-                return shard0_mem_scale;
-            }
-#endif
         }    // namespace aspects
     }        // namespace proof_generator
 }    // namespace nil

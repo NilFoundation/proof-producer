@@ -25,15 +25,6 @@
 
 #undef B0
 
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-    #include <nil/actor/core/app_template.hh>
-    #include <nil/actor/core/thread.hh>
-    #include <nil/actor/core/reactor.hh>
-    #include <nil/actor/core/posix.hh>
-    #include <nil/actor/core/future.hh>
-    #include <nil/actor/core/posix.hh>
-#endif
-
 #include <boost/random.hpp>
 #include <boost/random/random_device.hpp>
 #include <boost/json/src.hpp>
@@ -112,38 +103,7 @@ struct prover {
         auto prover_task = [&] {
             return nil::proof_generator::prover<BlueprintFieldType>(circuit_file_path, assignment_file_path, proof_file, skip_verification) ? 0 : 1;
         };
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-        // For multithreaded version we have to launch Seastar stuff first
-        using namespace nil::actor;
-        int shard0_mem_scale = context_.find<nil::proof_generator::aspects::prover_vanilla>()->get_shard0_mem_scale();
-        std::vector<std::string> arguments = {
-            "unused_program_name", "--shard0-mem-scale", std::to_string(shard0_mem_scale) };
-
-        // Constructing argc and argv
-        std::vector<char*> argv;
-        for (const auto& arg : arguments)
-            argv.push_back((char*)arg.data());
-        argv.push_back(nullptr);
-
-        // Don't interfere with actor signal handling
-        sigset_t mask;
-        sigfillset(&mask);
-        for (auto sig : {SIGSEGV}) {
-            sigdelset(&mask, sig);
-        }
-        auto r = ::pthread_sigmask(SIG_BLOCK, &mask, NULL);
-        if (r) {
-            std::cerr << "Error blocking signals. Aborting." << std::endl;
-            abort();
-        }
-
-        nil::actor::app_template app;
-        return app.run(arguments.size(), argv.data(), [this, &app, &prover_task] {
-            return nil::actor::async(prover_task);
-        });
-#else
         return prover_task();
-#endif
     }
 
     int operator()() {

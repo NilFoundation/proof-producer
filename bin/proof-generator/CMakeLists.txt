@@ -83,7 +83,6 @@ list(APPEND libraries
         crypto3::pkpad
         crypto3::pubkey
         crypto3::random
-        crypto3::zk
 
         marshalling::core
         marshalling::crypto3_algebra
@@ -102,14 +101,15 @@ if (PROOF_GENERATOR_MODE_MULTI_THREADED)
     list(APPEND libraries
         actor::core
         actor::containers
-        actor::network
         actor::math
         actor::zk
     )
-endif ()
-
-if (PROOF_GENERATOR_MODE_MULTI_THREADED AND (NOT (UNIX AND (CMAKE_SYSTEM_NAME STREQUAL "Linux"))))
-    list(APPEND libraries epoll-shim)
+else()
+    list(APPEND libraries
+        crypto3::containers
+        crypto3::math
+        crypto3::zk
+    )
 endif ()
 
 target_link_libraries(${CURRENT_PROJECT_NAME} ${libraries})
