@@ -119,7 +119,7 @@ jobs:
           BOOST_ROOT: "${{ steps.install-boost.outputs.BOOST_ROOT }}"
         run: |
           cmake -G "Unix Makefiles" \
-            -DBoost_ARCHITECTURE=-x64
+            -DBoost_ARCHITECTURE=-x64 \
             -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DBoost_USE_STATIC_LIBS=ON \
