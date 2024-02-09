@@ -28,49 +28,26 @@ jobs:
         - /home/runner/work/_temp/:/opt/
 
     steps:
-      - name: Install dependencies
-        # Versions of runtime libraries are set in CPACK_DEBIAN_PACKAGE_DEPENDENCIES_MULTITHREADED_VERSION of CMakeLists.txt.
+      - name: Install Git CLI for Ubuntu container
+        # GH runner image does not need it
         run: |
-          env && \
-          apt update && \
-          apt install -y \
-            build-essential \
-            libssl-dev \
-            cmake \
-            git \
-            unzip \
-            libicu-dev \
-            curl \
-            pkg-config \
-            wget \
-            \
-            libspdlog-dev \
-            liblz4-dev=1.9.3-2build2 \
-            libgnutls28-dev=3.7.3-4ubuntu1.3 \
-            libprotobuf-dev=3.12.4-1ubuntu7.22.04.1 \
-            libyaml-cpp-dev=0.7.0+dfsg-8build1 \
-            libsctp-dev \
-            ragel \
-            xfslibs-dev \
-            systemtap-sdt-dev \
-            libc-ares-dev=1.18.1-1ubuntu0.22.04.2 \
-            libhwloc-dev=2.7.0-2ubuntu1 \
-            libc-dev \
-            lksctp-tools \
-            libatomic1
-
-
-      - name: Print toolchain information
-        run: |
-          git --version
-          cc --version
-          cmake --version
+          apt-get update
+          apt-get install git -y
 
       - name: Checkout sources
         uses: actions/checkout@v3
         with:
           submodules: 'recursive'
           fetch-depth: 0
+
+      - name: Install dependencies
+        uses: ./.github/actions/composite-install-dependecies
+
+      - name: Print toolchain information
+        run: |
+          git --version
+          cc --version
+          cmake --version
 
       # Workaround: https://github.com/actions/checkout/issues/1169
       - name: Mark directory as safe
