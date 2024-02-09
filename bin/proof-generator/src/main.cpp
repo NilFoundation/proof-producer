@@ -108,9 +108,12 @@ struct prover {
     }
 
     template <typename BlueprintFieldType>
-    int run_prover() {
+    int run_prover(bool verification_only) {
         auto prover_task = [&] {
-            return nil::proof_generator::prover<BlueprintFieldType>(circuit_file_path, assignment_file_path, proof_file, skip_verification) ? 0 : 1;
+            return verification_only ?
+                nil::proof_generator::verify<BlueprintFieldType>(circuit_file_path, assignment_file_path, proof_file, skip_verification) ? 0 : 1
+              : nil::proof_generator::prover<BlueprintFieldType>(circuit_file_path, assignment_file_path, proof_file, skip_verification) ? 0 : 1;
+
         };
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
         // For multithreaded version we have to launch Seastar stuff first
@@ -153,6 +156,7 @@ struct prover {
             context_.find<nil::proof_generator::aspects::prover_vanilla>()->input_assignment_file_path();
 
         skip_verification = context_.find<nil::proof_generator::aspects::prover_vanilla>()->is_skip_verification_mode_on();
+        verification_only = context_.find<nil::proof_generator::aspects::prover_vanilla>()->is_verification_only();
 
         proof_file = context_.find<nil::proof_generator::aspects::prover_vanilla>()->output_proof_file_path();
 
@@ -161,7 +165,7 @@ struct prover {
             case nil::proof_generator::detail::PALLAS: {
                 using curve_type = nil::crypto3::algebra::curves::pallas;
                 using BlueprintFieldType = typename curve_type::base_field_type;
-                return run_prover<BlueprintFieldType>();
+                return run_prover<BlueprintFieldType>(verification_only);
             }
             case nil::proof_generator::detail::VESTA: {
                 BOOST_LOG_TRIVIAL(error) << "vesta curve based circuits are not supported yet";
@@ -182,6 +186,7 @@ struct prover {
     boost::filesystem::path circuit_file_path;
     boost::filesystem::path assignment_file_path;
     bool skip_verification;
+    bool verification_only;
 
     boost::application::context &context_;
 };

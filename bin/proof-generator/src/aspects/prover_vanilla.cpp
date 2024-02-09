@@ -55,7 +55,8 @@ namespace nil {
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
                 ("shard0-mem-scale", boost::program_options::value<int>(), "If set allocates this many times more memory for shard #0 compared to other shards.")
 #endif
-                ("skip-verification", "If set - skips verifiyng step of the generated proof");
+                ("skip-verification", "If set - skips verifiyng step of the generated proof")
+                ("verification-only", "Read proof for verification instead of writing to it")
                 ("elliptic-curve-type,e", boost::program_options::value<std::string>(), "Native elliptic curve type (pallas, vesta, ed25519, bls12381), default: pallas");
                 // clang-format on
                 cli.add(options);
@@ -133,6 +134,10 @@ namespace nil {
                 if (vm.count("skip-verification")) {
                     skip_verification = true;
                 }
+
+                if (vm.count("verification-only")) {
+                    verification_only = true;
+                }
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
                 if (vm.count("shard0-mem-scale")) {
                     shard0_mem_scale = vm["shard0-mem-scale"].as<int>();
@@ -176,6 +181,10 @@ namespace nil {
 
             bool prover_vanilla::is_skip_verification_mode_on() const {
                 return skip_verification;
+            }
+
+            bool prover_vanilla::is_verification_only() const {
+                return verification_only;
             }
 
             detail::CurveType prover_vanilla::curve_type() const {

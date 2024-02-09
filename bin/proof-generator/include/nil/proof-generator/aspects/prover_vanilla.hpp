@@ -65,6 +65,7 @@ namespace nil {
                 boost::filesystem::path output_proof_file_path() const;
 
                 bool is_skip_verification_mode_on() const;
+                bool is_verification_only() const;
 
                 detail::CurveType curve_type() const;
 
@@ -80,6 +81,7 @@ namespace nil {
                 boost::filesystem::path assignment_table_file_path;
                 boost::filesystem::path proof_file_path;
                 bool skip_verification = false;
+                bool verification_only = false;
                 detail::CurveType curve_type_;
 
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
