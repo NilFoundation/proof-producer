@@ -11,6 +11,10 @@ on:
         - minor
         - patch
         default: minor
+      build_flags:
+        type: string
+        description: Additional flags for the build command
+        default: ""
 
 jobs:
   make-release-linux:
@@ -123,7 +127,8 @@ jobs:
             -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DBoost_USE_STATIC_LIBS=ON \
-            -DPROOF_PRODUCER_VERSION=${{ env.VERSION }} .
+            -DPROOF_PRODUCER_VERSION=${{ env.VERSION }} \
+            ${{ github.event.inputs.build_flags }} .
 
       - name: Build packages
         run: |
