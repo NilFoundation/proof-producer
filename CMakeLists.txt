@@ -54,8 +54,6 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3")
 add_subdirectories("${CMAKE_CURRENT_LIST_DIR}/libs/actor")
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/module")
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/plugin")
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/application")
 
 if(NOT PROOF_PRODUCER_VERSION)
     find_program(GIT_EXECUTABLE NAMES git PATHS /usr/bin /usr/local/bin)
@@ -112,12 +110,7 @@ endif()
 
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
-list(APPEND PROOF_GENERATOR_MODE_LIST single-threaded multi-threaded)
-
-foreach(PROOF_GENERATOR_MODE_SUFFIX IN LISTS PROOF_GENERATOR_MODE_LIST)
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/proof-generator" ${CMAKE_BINARY_DIR}/bin/proof-generator-${PROOF_GENERATOR_MODE_SUFFIX})
-endforeach()
-
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/proof-generator")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/jsonizer")
 
 install(SCRIPT cmake/create-symlinks.cmake)

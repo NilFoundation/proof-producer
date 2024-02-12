@@ -21,54 +21,67 @@
 
 #include <fstream>
 
-#include <nil/marshalling/endianness.hpp>
-#include <nil/marshalling/status_type.hpp>
+#include <boost/filesystem/path.hpp>
+
 #include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
 
+#include <nil/marshalling/endianness.hpp>
+#include <nil/marshalling/status_type.hpp>
+
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-    #include <nil/actor/zk/snark/systems/plonk/placeholder/proof.hpp>
+#include <nil/actor/zk/snark/systems/plonk/placeholder/proof.hpp>
 #endif
 
 namespace nil {
     namespace proof_generator {
-        template<typename TIter>
-        void print_hex_byteblob(std::ostream &os, TIter iter_begin, TIter iter_end, bool endl) {
-            os << "0x" << std::hex;
-            for (TIter it = iter_begin; it != iter_end; it++) {
-                os << std::setfill('0') << std::setw(2) << std::right << int(*it);
+        namespace detail {
+
+            template<typename TIter>
+            void print_hex_byteblob(std::ostream& os, TIter iter_begin, TIter iter_end, bool endl) {
+                os << "0x" << std::hex;
+                for (TIter it = iter_begin; it != iter_end; it++) {
+                    os << std::setfill('0') << std::setw(2) << std::right << int(*it);
+                }
+                os << std::dec;
+                if (endl) {
+                    os << std::endl;
+                }
             }
-            os << std::dec;
-            if (endl) {
-                os << std::endl;
+
+            template<typename Endianness, typename Proof, typename CommitmentParamsType>
+            void proof_print(
+                const Proof& proof,
+                const CommitmentParamsType& params,
+                boost::filesystem::path output_file
+            ) {
+                using namespace nil::crypto3::marshalling;
+
+                using TTypeBase = nil::marshalling::field_type<Endianness>;
+
+                auto filled_placeholder_proof =
+                    crypto3::marshalling::types::fill_placeholder_proof<Endianness, Proof>(proof, params);
+
+                std::vector<std::uint8_t> cv;
+                cv.resize(filled_placeholder_proof.length(), 0x00);
+                auto write_iter = cv.begin();
+                nil::marshalling::status_type status = filled_placeholder_proof.write(write_iter, cv.size());
+                std::ofstream out;
+                out.open(output_file.c_str());
+                print_hex_byteblob(out, cv.cbegin(), cv.cend(), false);
             }
-        }
 
-        template<typename Endianness, typename Proof, typename CommitmentParamsType>
-        void proof_print(const Proof &proof, const CommitmentParamsType &params, boost::filesystem::path output_file) {
-            using namespace nil::crypto3::marshalling;
+            template<typename T, std::size_t Size>
+            constexpr std::size_t find_index(const T& item, const std::array<T, Size>& arr) {
+                for (std::size_t i = 0; i < arr.size(); ++i) {
+                    if (arr[i] == item) {
+                        return i;
+                    }
+                }
+                throw std::out_of_range("Item not found in array");
+            }
 
-            using TTypeBase = nil::marshalling::field_type<Endianness>;
+        } // namespace detail
+    }     // namespace proof_generator
+} // namespace nil
 
-            using proof_marshalling_type = nil::
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-            actor
-#else
-            crypto3
-#endif
-            ::zk::snark::placeholder_proof<TTypeBase, Proof>;
-
-            auto filled_placeholder_proof =
-                crypto3::marshalling::types::fill_placeholder_proof<Endianness, Proof>(proof, params);
-
-            std::vector<std::uint8_t> cv;
-            cv.resize(filled_placeholder_proof.length(), 0x00);
-            auto write_iter = cv.begin();
-            nil::marshalling::status_type status = filled_placeholder_proof.write(write_iter, cv.size());
-            std::ofstream out;
-            out.open(output_file.c_str());
-            print_hex_byteblob(out, cv.cbegin(), cv.cend(), false);
-        }
-    }    // namespace proof_generator
-}    // namespace nil
-
-#endif    // PROOF_GENERATOR_DETAIL_UTILS_HPP
+#endif // PROOF_GENERATOR_DETAIL_UTILS_HPP
