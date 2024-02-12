@@ -240,6 +240,7 @@ namespace nil {
 
             // 26 -- real value
             const std::size_t Lambda = 9;
+            // Hash function should be passed threw preprocessor directives
             using Hash = nil::crypto3::hashes::keccak_1600<256>;
             using circuit_params = NAMESPACE::zk::snark::placeholder_circuit_params<
                 BlueprintFieldType, ArithmetizationParams
