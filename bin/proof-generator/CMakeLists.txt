@@ -2,6 +2,7 @@
 # Copyright (c) 2022 Mikhail Komarov <nemo@nil.foundation>
 # Copyright (c) 2022 Aleksei Moskvin <alalmoskvin@nil.foundation>
 # Copyright (c) 2023 Ilia Shirobokov <i.shirobokov@nil.foundation>
+# Copyright (c) 2024 Iosif (x-mass) <x-mass@nil.foundation>
 #
 # Distributed under the Boost Software License, Version 1.0
 # See accompanying file LICENSE_1_0.txt or copy at
@@ -14,23 +15,11 @@ cm_find_package(CM)
 include(CMDeploy)
 include(CMSetupVersion)
 
-cm_project(proof-generator-${PROOF_GENERATOR_MODE_SUFFIX} WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES ASM C CXX)
+cm_project(proof-generator WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES ASM C CXX)
 
 if (CPACK_PACKAGE_VERSION)
     add_compile_definitions(PROOF_GENERATOR_VERSION=${CPACK_PACKAGE_VERSION})
 endif()
-
-string(TOUPPER ${PROOF_GENERATOR_MODE_SUFFIX} PROOF_GENERATOR_MODE_SUFFIX)
-string(REPLACE "-" "_" PROOF_GENERATOR_MODE_SUFFIX ${PROOF_GENERATOR_MODE_SUFFIX})
-
-set (PROOF_GENERATOR_MODE "PROOF_GENERATOR_MODE_${PROOF_GENERATOR_MODE_SUFFIX}")
-add_definitions(-D${PROOF_GENERATOR_MODE})
-message (STATUS "Configuring proof-generator with PROOF_GENERATOR_MODE: ${PROOF_GENERATOR_MODE}")
-
-if (${PROOF_GENERATOR_MODE} STREQUAL "PROOF_GENERATOR_MODE_MULTI_THREADED")
-    set (PROOF_GENERATOR_MODE_MULTI_THREADED ON)
-endif()
-
 
 option(ZK_PLACEHOLDER_PROFILING_ENABLED "Build with placeholder profiling" FALSE)
 option(ZK_PLACEHOLDER_DEBUG_ENABLED "Build with placeholder testing inside" FALSE)
@@ -49,33 +38,25 @@ endif ()
 
 cm_setup_version(VERSION 0.1.0)
 
-# get header files; only needed by CMake generators,
-# e.g., for creating proper Xcode projects
-set(${CURRENT_PROJECT_NAME}_HEADERS)
-
-# list cpp files excluding platform-dependent files
-list(APPEND ${CURRENT_PROJECT_NAME}_SOURCES
+# Function to setup common properties for a target
+function(setup_proof_generator_target TARGET_NAME)
+    add_executable(${TARGET_NAME}
+        src/arg_parser.cpp
         src/main.cpp
-        src/aspects/args.cpp
-        src/aspects/configuration.cpp
-        src/aspects/path.cpp
-        src/aspects/prover_vanilla.cpp
-        )
+    )
 
-set(${CURRENT_PROJECT_NAME}_HEADERS
-        )
-
-add_executable(${CURRENT_PROJECT_NAME}
-        ${${CURRENT_PROJECT_NAME}_HEADERS}
-        ${${CURRENT_PROJECT_NAME}_SOURCES})
-
-set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES
+    set_target_properties(${TARGET_NAME} PROPERTIES
         LINKER_LANGUAGE CXX
-        EXPORT_NAME ${CURRENT_PROJECT_NAME}
+        EXPORT_NAME ${TARGET_NAME}
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED TRUE)
 
-list(APPEND libraries
+    target_include_directories(${TARGET_NAME} PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<$<BOOL:${Boost_FOUND}>:${Boost_INCLUDE_DIRS}>)
+
+    target_link_libraries(${TARGET_NAME}
         crypto3::algebra
         crypto3::block
         crypto3::codec
@@ -83,56 +64,57 @@ list(APPEND libraries
         crypto3::pkpad
         crypto3::pubkey
         crypto3::random
-        crypto3::zk
 
         marshalling::core
         marshalling::crypto3_algebra
         marshalling::crypto3_multiprecision
         marshalling::crypto3_zk
 
-        dbms::plugin
-        boost::application
-
         Boost::filesystem
         Boost::log
-        Boost::thread
+        Boost::program_options
+        Boost::thread)
+
+    if (APPLE OR NOT ${CMAKE_TARGET_ARCHITECTURE} STREQUAL ${CMAKE_HOST_SYSTEM_PROCESSOR})
+        set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES
+                XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "${APPLE_CODE_SIGN_IDENTITY}"
+                XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM}")
+    elseif (CMAKE_CROSSCOMPILING AND CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+        if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+            set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES
+                    COMPILE_FLAGS "-s USE_BOOST_HEADERS=1 -s USE_PTHREADS -s PROXY_TO_PTHREAD"
+                    LINK_FLAGS "-s USE_BOOST_HEADERS=1 -s USE_PTHREADS -s PROXY_TO_PTHREAD"
+                    LINK_DIRECTORIES "${CMAKE_BINARY_DIR}/libs/boost/src/boost/stage/lib")
+        endif ()
+
+        add_dependencies(${CURRENT_PROJECT_NAME} boost)
+    endif ()
+endfunction()
+
+# Declare single-threaded target
+set(SINGLE_THREADED_TARGET "${CURRENT_PROJECT_NAME}-single-threaded")
+setup_proof_generator_target(${SINGLE_THREADED_TARGET})
+
+target_link_libraries(${SINGLE_THREADED_TARGET}
+    crypto3::zk
 )
 
-if (PROOF_GENERATOR_MODE_MULTI_THREADED)
-    list(APPEND libraries
-        actor::core
-        actor::containers
-        actor::network
-        actor::math
-        actor::zk
+# Declare multi-threaded target
+set(MUTLI_THREADED_TARGET "${CURRENT_PROJECT_NAME}-multi-threaded")
+setup_proof_generator_target(${MUTLI_THREADED_TARGET})
+
+target_link_libraries(${MUTLI_THREADED_TARGET}
+    actor::core
+    actor::containers
+    actor::network
+    actor::math
+    actor::zk
+)
+
+if (NOT (UNIX AND (CMAKE_SYSTEM_NAME STREQUAL "Linux")))
+    target_link_libraries(${MUTLI_THREADED_TARGET}
+        epoll-shim
     )
 endif ()
 
-if (PROOF_GENERATOR_MODE_MULTI_THREADED AND (NOT (UNIX AND (CMAKE_SYSTEM_NAME STREQUAL "Linux"))))
-    list(APPEND libraries epoll-shim)
-endif ()
-
-target_link_libraries(${CURRENT_PROJECT_NAME} ${libraries})
-
-target_include_directories(${CURRENT_PROJECT_NAME} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-
-        $<$<BOOL:${Boost_FOUND}>:${Boost_INCLUDE_DIRS}>)
-
-if (APPLE OR NOT ${CMAKE_TARGET_ARCHITECTURE} STREQUAL ${CMAKE_HOST_SYSTEM_PROCESSOR})
-    set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES
-            XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "${APPLE_CODE_SIGN_IDENTITY}"
-            XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM}")
-elseif (CMAKE_CROSSCOMPILING AND CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-    if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-        set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES
-                COMPILE_FLAGS "-s USE_BOOST_HEADERS=1 -s USE_PTHREADS -s PROXY_TO_PTHREAD"
-                LINK_FLAGS "-s USE_BOOST_HEADERS=1 -s USE_PTHREADS -s PROXY_TO_PTHREAD"
-                LINK_DIRECTORIES "${CMAKE_BINARY_DIR}/libs/boost/src/boost/stage/lib")
-    endif ()
-
-    add_dependencies(${CURRENT_PROJECT_NAME} boost)
-endif ()
-
-install(TARGETS ${CURRENT_PROJECT_NAME} RUNTIME DESTINATION bin)
+install(TARGETS ${SINGLE_THREADED_TARGET} ${MUTLI_THREADED_TARGET} RUNTIME DESTINATION bin)
