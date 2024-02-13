@@ -42,4 +42,5 @@ runs:
           libc-dev \
           lksctp-tools \
           libatomic1 \
-          clang
+          clang \
+          clang-format

@@ -19,8 +19,8 @@
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
-#include <string>
 #include <iostream>
+#include <string>
 
 #ifndef BOOST_FILESYSTEM_NO_DEPRECATED
 #define BOOST_FILESYSTEM_NO_DEPRECATED
@@ -29,31 +29,31 @@
 #define BOOST_SYSTEM_NO_DEPRECATED
 #endif
 
-#include <boost/log/core.hpp>
-#include <boost/log/trivial.hpp>
-#include <boost/log/expressions.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/json/src.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/trivial.hpp>
 #include <boost/optional.hpp>
 #include <boost/program_options.hpp>
-#include <boost/filesystem.hpp>
 
 #include <nil/crypto3/algebra/curves/pallas.hpp>
-#include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
-#include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
-#include <nil/crypto3/marshalling/zk/types/plonk/constraint_system.hpp>
-#include <nil/crypto3/marshalling/zk/types/plonk/assignment_table.hpp>
-#include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
-#include <nil/crypto3/multiprecision/cpp_int.hpp>
-#include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
+#include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 #include <nil/crypto3/hash/keccak.hpp>
+#include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
+#include <nil/crypto3/marshalling/zk/types/plonk/assignment_table.hpp>
+#include <nil/crypto3/marshalling/zk/types/plonk/constraint_system.hpp>
+#include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
+#include <nil/crypto3/multiprecision/cpp_int.hpp>
+#include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
+#include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/params.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/preprocessor.hpp>
-#include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/profiling.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/proof.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
-#include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
-#include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 
 #include <nil/proof-producer/recursive_json_generator.hpp>
 
@@ -81,12 +81,14 @@ bool read_buffer_from_file(std::ifstream &ifile, std::vector<std::uint8_t> &v) {
     return true;
 }
 
-template <typename BlueprintFieldType, typename ArithmetizationParams>
-int instanciated_main(boost::filesystem::path proof_file_path,
-                      boost::filesystem::path assignment_table_file_path,
-                      boost::filesystem::path circuit_file_path,
-                      std::size_t used_public_input_rows,
-                      std::size_t used_shared_rows) {
+template<typename BlueprintFieldType, typename ArithmetizationParams>
+int instanciated_main(
+    boost::filesystem::path proof_file_path,
+    boost::filesystem::path assignment_table_file_path,
+    boost::filesystem::path circuit_file_path,
+    std::size_t used_public_input_rows,
+    std::size_t used_shared_rows
+) {
 
     using ConstraintSystemType =
         nil::crypto3::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
@@ -120,7 +122,7 @@ int instanciated_main(boost::filesystem::path proof_file_path,
         const auto fsize = iassignment.tellg();
         v.resize(fsize);
         iassignment.seekg(0, std::ios_base::beg);
-        iassignment.read(reinterpret_cast<char*>(v.data()), fsize);
+        iassignment.read(reinterpret_cast<char *>(v.data()), fsize);
         if (!iassignment) {
             BOOST_LOG_TRIVIAL(error) << "Cannot parse input file " << assignment_table_file_path;
             return false;
@@ -138,32 +140,25 @@ int instanciated_main(boost::filesystem::path proof_file_path,
 
     const std::size_t Lambda = 9;
     using Hash = nil::crypto3::hashes::keccak_1600<256>;
-    using circuit_params = nil::crypto3::zk::snark::placeholder_circuit_params<
-        BlueprintFieldType, ArithmetizationParams
-    >;
+    using circuit_params =
+        nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintFieldType, ArithmetizationParams>;
 
     std::size_t table_rows_log = std::ceil(std::log2(table_description.rows_amount));
-    using lpc_params_type = nil::crypto3::zk::commitments::list_polynomial_commitment_params<
-        Hash,
-        Hash,
-        Lambda,
-        2
-    >;
+    using lpc_params_type = nil::crypto3::zk::commitments::list_polynomial_commitment_params<Hash, Hash, Lambda, 2>;
     using lpc_type = nil::crypto3::zk::commitments::list_polynomial_commitment<BlueprintFieldType, lpc_params_type>;
     using lpc_scheme_type = typename nil::crypto3::zk::commitments::lpc_commitment_scheme<lpc_type>;
     using placeholder_params = nil::crypto3::zk::snark::placeholder_params<circuit_params, lpc_scheme_type>;
 
     std::array<std::size_t, ArithmetizationParams::public_input_columns> public_input_sizes;
-    for(std::size_t i = 0; i < ArithmetizationParams::public_input_columns; i++){
+    for (std::size_t i = 0; i < ArithmetizationParams::public_input_columns; i++) {
         public_input_sizes[i] = used_public_input_rows;
     }
-    if(ArithmetizationParams::public_input_columns > 1 && used_shared_rows > 0){
+    if (ArithmetizationParams::public_input_columns > 1 && used_shared_rows > 0) {
         public_input_sizes[ArithmetizationParams::public_input_columns - 1] = used_shared_rows;
     }
 
     using ProofType = nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>;
-        using proof_marshalling_type =
-        nil::crypto3::marshalling::types::placeholder_proof<TTypeBase, ProofType>;
+    using proof_marshalling_type = nil::crypto3::marshalling::types::placeholder_proof<TTypeBase, ProofType>;
 
     ProofType proof;
     BOOST_LOG_TRIVIAL(info) << "Proof Type = " << typeid(ProofType).name() << std::endl;
@@ -184,9 +179,7 @@ int instanciated_main(boost::filesystem::path proof_file_path,
         proof_marshalling_type marshalled_proof_data;
         auto read_iter = v.begin();
         auto status = marshalled_proof_data.read(read_iter, v.size());
-        proof = nil::crypto3::marshalling::types::make_placeholder_proof<Endianness, ProofType>(
-            marshalled_proof_data
-        );
+        proof = nil::crypto3::marshalling::types::make_placeholder_proof<Endianness, ProofType>(marshalled_proof_data);
     }
 
     proof_file_path.replace_extension(".json");
@@ -194,10 +187,8 @@ int instanciated_main(boost::filesystem::path proof_file_path,
     json_proof_file_stream.open(proof_file_path);
     json_proof_file_stream << nil::proof_producer::recursive_json_generator<
         placeholder_params,
-        nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>
-    >::generate_proof_json(
-        proof, assignment_table.public_inputs(), public_input_sizes
-    );
+        nil::crypto3::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>>::
+            generate_proof_json(proof, assignment_table.public_inputs(), public_input_sizes);
     json_proof_file_stream.close();
     BOOST_LOG_TRIVIAL(info) << "JSON written" << std::endl;
     return 0;
@@ -205,7 +196,9 @@ int instanciated_main(boost::filesystem::path proof_file_path,
 
 int main(int argc, char *argv[]) {
 
-    boost::program_options::options_description options_desc("zkLLVM proof2json recursive verifier input creation tool options");
+    boost::program_options::options_description options_desc(
+        "zkLLVM proof2json recursive verifier input creation tool options"
+    );
 
     // clang-format off
     options_desc.add_options()("help,h", "Display help message")
@@ -220,18 +213,18 @@ int main(int argc, char *argv[]) {
             ;
     // clang-format on
 
-
     boost::program_options::variables_map vm;
     try {
-        boost::program_options::store(boost::program_options::command_line_parser(argc, argv).options(options_desc).run(),
-                                    vm);
+        boost::program_options::store(
+            boost::program_options::command_line_parser(argc, argv).options(options_desc).run(),
+            vm
+        );
         boost::program_options::notify(vm);
     } catch (const boost::program_options::unknown_option &e) {
         BOOST_LOG_TRIVIAL(error) << "Invalid command line argument: " << e.what();
         std::cout << options_desc << std::endl;
         return 1;
     }
-
 
     if (vm.count("help")) {
         std::cout << options_desc << std::endl;
@@ -257,14 +250,13 @@ int main(int argc, char *argv[]) {
     std::string log_level;
 
     // We use Boost log trivial severity levels, these are string representations of their names
-    std::map<std::string, boost::log::trivial::severity_level> log_options{
+    std::map<std::string, boost::log::trivial::severity_level> log_options {
         {"trace", boost::log::trivial::trace},
         {"debug", boost::log::trivial::debug},
         {"info", boost::log::trivial::info},
         {"warning", boost::log::trivial::warning},
         {"error", boost::log::trivial::error},
-        {"fatal", boost::log::trivial::fatal}
-    };
+        {"fatal", boost::log::trivial::fatal}};
 
     if (vm.count("log-level")) {
         log_level = vm["log-level"].as<std::string>();
@@ -327,7 +319,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    std::map<std::string, int> curve_options{
+    std::map<std::string, int> curve_options {
         {"pallas", 0},
         {"vesta", 1},
         {"ed25519", 2},
@@ -340,7 +332,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-
     constexpr std::size_t ComponentConstantColumns = 5;
     constexpr std::size_t LookupConstantColumns = 30;
     constexpr std::size_t ComponentSelectorColumns = 30;
@@ -351,15 +342,20 @@ int main(int argc, char *argv[]) {
     constexpr std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
     constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorConstantColumns;
 
-    using ArithmetizationParams =
-                nil::crypto3::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns,
-                                                                    SelectorColumns>;
+    using ArithmetizationParams = nil::crypto3::zk::snark::
+        plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
 
     switch (curve_options[elliptic_curve]) {
         case 0: {
             using curve_type = nil::crypto3::algebra::curves::pallas;
             using BlueprintFieldType = typename curve_type::base_field_type;
-            return instanciated_main<BlueprintFieldType, ArithmetizationParams>(proof_file_path, assignment_table_file_path, circuit_file_path, used_public_input_rows, used_shared_rows);
+            return instanciated_main<BlueprintFieldType, ArithmetizationParams>(
+                proof_file_path,
+                assignment_table_file_path,
+                circuit_file_path,
+                used_public_input_rows,
+                used_shared_rows
+            );
         }
         case 1: {
             BOOST_LOG_TRIVIAL(error) << "vesta curve based circuits are not supported yet";
@@ -375,5 +371,4 @@ int main(int argc, char *argv[]) {
             BOOST_LOG_TRIVIAL(error) << "bls12-381 curve based circuits proving is temporarily disabled";
         }
     };
-
 }
