@@ -253,7 +253,7 @@ jobs:
       - name: Build proof-producer
         working-directory: ${{ steps.strings.outputs.build-dir }}
         run: |
-          make
+          make package
 
       - name: List artifacts
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
@@ -315,6 +315,14 @@ jobs:
           name: ${{ steps.artifact-name.outputs.merged }}
           path: |
             ${{ steps.strings.outputs.artifact-dir }}/transpiler_output_*
+
+      - name: Upload .deb package
+        if: matrix.cpp-compiler == 'g++' && matrix.build-type == 'Release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: proof-producer.deb
+          path: |
+             ${{ steps.strings.outputs.build-dir }}/proof-producer*.deb
 
 
   verify-proof-producer-proofs:
