@@ -43,23 +43,12 @@ proof-generator --circuit <circuit-file> --assignment <assignment-file> --proof 
     ```
     sudo apt-get install \
         build-essential \
-        liblz4-dev \
-        libgnutls28-dev \
-        libyaml-cpp-dev \
         libsctp-dev \
-        ragel \
-        xfslibs-dev \
-        systemtap-sdt-dev \
-        libc-ares-dev \
-        libhwloc-dev
         libssl-dev \
         libicu-dev \
-        libprotobuf-dev \
         lsb-release \
         gnutls-dev \
-        pkg-config \
-        lksctp-tools \
-        numactl
+        pkg-config
     ```
 
 2. Build with CMake:

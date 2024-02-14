@@ -39,24 +39,39 @@ endif ()
 cm_setup_version(VERSION 0.1.0)
 
 # Function to setup common properties for a target
-function(setup_proof_generator_target TARGET_NAME)
-    add_executable(${TARGET_NAME}
+function(setup_proof_generator_target)
+    set(options "")
+    set(oneValueArgs TARGET_NAME)
+    set(multiValueArgs ADDITIONAL_DEPENDENCIES)
+
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    add_executable(${ARG_TARGET_NAME}
         src/arg_parser.cpp
         src/main.cpp
     )
 
-    set_target_properties(${TARGET_NAME} PROPERTIES
+    # Make sure to add these dependencies before the others, since for multi-threaded version dependency on
+    # actor-zk must come first.
+    if(ARG_ADDITIONAL_DEPENDENCIES)
+        foreach(lib IN LISTS ARG_ADDITIONAL_DEPENDENCIES)
+            target_link_libraries(${ARG_TARGET_NAME} ${lib})
+        endforeach()
+    endif()
+
+
+    set_target_properties(${ARG_TARGET_NAME} PROPERTIES
         LINKER_LANGUAGE CXX
-        EXPORT_NAME ${TARGET_NAME}
+        EXPORT_NAME ${ARG_TARGET_NAME}
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED TRUE)
 
-    target_include_directories(${TARGET_NAME} PUBLIC
+    target_include_directories(${ARG_TARGET_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<$<BOOL:${Boost_FOUND}>:${Boost_INCLUDE_DIRS}>)
 
-    target_link_libraries(${TARGET_NAME}
+    target_link_libraries(${ARG_TARGET_NAME}
         crypto3::algebra
         crypto3::block
         crypto3::codec
@@ -93,28 +108,10 @@ endfunction()
 
 # Declare single-threaded target
 set(SINGLE_THREADED_TARGET "${CURRENT_PROJECT_NAME}-single-threaded")
-setup_proof_generator_target(${SINGLE_THREADED_TARGET})
-
-target_link_libraries(${SINGLE_THREADED_TARGET}
-    crypto3::zk
-)
+setup_proof_generator_target(TARGET_NAME ${SINGLE_THREADED_TARGET} ADDITIONAL_DEPENDENCIES crypto3::zk)
 
 # Declare multi-threaded target
 set(MUTLI_THREADED_TARGET "${CURRENT_PROJECT_NAME}-multi-threaded")
-setup_proof_generator_target(${MUTLI_THREADED_TARGET})
-
-target_link_libraries(${MUTLI_THREADED_TARGET}
-    actor::core
-    actor::containers
-    actor::network
-    actor::math
-    actor::zk
-)
-
-if (NOT (UNIX AND (CMAKE_SYSTEM_NAME STREQUAL "Linux")))
-    target_link_libraries(${MUTLI_THREADED_TARGET}
-        epoll-shim
-    )
-endif ()
+setup_proof_generator_target(TARGET_NAME ${MUTLI_THREADED_TARGET} ADDITIONAL_DEPENDENCIES actor::zk)
 
 install(TARGETS ${SINGLE_THREADED_TARGET} ${MUTLI_THREADED_TARGET} RUNTIME DESTINATION bin)
