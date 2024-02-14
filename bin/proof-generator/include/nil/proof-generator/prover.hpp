@@ -31,24 +31,8 @@
 #include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
 #include <nil/crypto3/marshalling/zk/types/plonk/assignment_table.hpp>
 #include <nil/crypto3/marshalling/zk/types/plonk/constraint_system.hpp>
-#include <nil/crypto3/multiprecision/cpp_int.hpp>
-
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-
-#include <nil/actor/math/algorithms/calculate_domain_set.hpp>
-#include <nil/actor/zk/snark/arithmetization/plonk/constraint_system.hpp>
-#include <nil/actor/zk/snark/arithmetization/plonk/params.hpp>
-#include <nil/actor/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
-#include <nil/actor/zk/snark/systems/plonk/placeholder/params.hpp>
-#include <nil/actor/zk/snark/systems/plonk/placeholder/preprocessor.hpp>
-#include <nil/actor/zk/snark/systems/plonk/placeholder/profiling.hpp>
-#include <nil/actor/zk/snark/systems/plonk/placeholder/proof.hpp>
-#include <nil/actor/zk/snark/systems/plonk/placeholder/prover.hpp>
-#include <nil/actor/zk/snark/systems/plonk/placeholder/verifier.hpp>
-
-#else
-
 #include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
+#include <nil/crypto3/multiprecision/cpp_int.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
@@ -59,20 +43,12 @@
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
 
-#endif
-
 #include <nil/marshalling/endianness.hpp>
 #include <nil/marshalling/field_type.hpp>
 #include <nil/marshalling/status_type.hpp>
 #include <nil/proof-generator/arithmetization_params.hpp>
 #include <nil/proof-generator/detail/utils.hpp>
 #include <nil/proof-generator/file_operations.hpp>
-
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-namespace proof_gen = nil::actor;
-#else
-namespace proof_gen = nil::crypto3;
-#endif
 
 namespace nil {
     namespace proof_generator {
@@ -126,11 +102,7 @@ namespace nil {
 
                 return typename FRIScheme::params_type(
                     (1 << degree_log) - 1, // max_degree
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-                    nil::actor::math::calculate_domain_set<FieldType>(degree_log + expand_factor, r).get(),
-#else
                     nil::crypto3::math::calculate_domain_set<FieldType>(degree_log + expand_factor, r),
-#endif
                     generate_random_step_list(r, max_step),
                     expand_factor
                 );
@@ -171,7 +143,7 @@ namespace nil {
                 BOOST_ASSERT(fri_params_);
 
                 BOOST_LOG_TRIVIAL(info) << "Generating proof...";
-                Proof proof = proof_gen::zk::snark::placeholder_prover<BlueprintField, PlaceholderParams>::process(
+                Proof proof = nil::crypto3::zk::snark::placeholder_prover<BlueprintField, PlaceholderParams>::process(
                     *public_preprocessed_data_,
                     *private_preprocessed_data_,
                     *table_description_,
@@ -224,32 +196,32 @@ namespace nil {
             static constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
             // clang-format on
 
-            using ArithmetizationParams = proof_gen::zk::snark::
+            using ArithmetizationParams = nil::crypto3::zk::snark::
                 plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
             using BlueprintField = typename CurveType::base_field_type;
-            using LpcParams = proof_gen::zk::commitments::
+            using LpcParams = nil::crypto3::zk::commitments::
                 list_polynomial_commitment_params<HashType, HashType, all_lambda_params[LambdaParamIdx], 2>;
-            using Lpc = proof_gen::zk::commitments::list_polynomial_commitment<BlueprintField, LpcParams>;
-            using LpcScheme = typename proof_gen::zk::commitments::lpc_commitment_scheme<Lpc>;
+            using Lpc = nil::crypto3::zk::commitments::list_polynomial_commitment<BlueprintField, LpcParams>;
+            using LpcScheme = typename nil::crypto3::zk::commitments::lpc_commitment_scheme<Lpc>;
             using CircuitParams =
-                proof_gen::zk::snark::placeholder_circuit_params<BlueprintField, ArithmetizationParams>;
-            using PlaceholderParams = proof_gen::zk::snark::placeholder_params<CircuitParams, LpcScheme>;
-            using Proof = proof_gen::zk::snark::placeholder_proof<BlueprintField, PlaceholderParams>;
-            using PublicPreprocessedData = typename proof_gen::zk::snark::
+                nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintField, ArithmetizationParams>;
+            using PlaceholderParams = nil::crypto3::zk::snark::placeholder_params<CircuitParams, LpcScheme>;
+            using Proof = nil::crypto3::zk::snark::placeholder_proof<BlueprintField, PlaceholderParams>;
+            using PublicPreprocessedData = typename nil::crypto3::zk::snark::
                 placeholder_public_preprocessor<BlueprintField, PlaceholderParams>::preprocessed_data_type;
-            using PrivatePreprocessedData = typename proof_gen::zk::snark::
+            using PrivatePreprocessedData = typename nil::crypto3::zk::snark::
                 placeholder_private_preprocessor<BlueprintField, PlaceholderParams>::preprocessed_data_type;
             using ConstraintSystem =
-                proof_gen::zk::snark::plonk_constraint_system<BlueprintField, ArithmetizationParams>;
+                nil::crypto3::zk::snark::plonk_constraint_system<BlueprintField, ArithmetizationParams>;
             using TableDescription =
-                proof_gen::zk::snark::plonk_table_description<BlueprintField, ArithmetizationParams>;
+                nil::crypto3::zk::snark::plonk_table_description<BlueprintField, ArithmetizationParams>;
             using Endianness = nil::marshalling::option::big_endian;
             using FriParams = typename Lpc::fri_type::params_type;
 
             bool verify(const Proof& proof) const {
                 BOOST_LOG_TRIVIAL(info) << "Verifying proof...";
                 bool verification_result =
-                    proof_gen::zk::snark::placeholder_verifier<BlueprintField, PlaceholderParams>::process(
+                    nil::crypto3::zk::snark::placeholder_verifier<BlueprintField, PlaceholderParams>::process(
                         *public_preprocessed_data_,
                         proof,
                         *constraint_system_,
@@ -271,9 +243,9 @@ namespace nil {
                 using ConstraintMarshalling =
                     nil::crypto3::marshalling::types::plonk_constraint_system<TTypeBase, ConstraintSystem>;
 
-                using Column = proof_gen::zk::snark::plonk_column<BlueprintField>;
+                using Column = nil::crypto3::zk::snark::plonk_column<BlueprintField>;
                 using AssignmentTable =
-                    proof_gen::zk::snark::plonk_table<BlueprintField, ArithmetizationParams, Column>;
+                    nil::crypto3::zk::snark::plonk_table<BlueprintField, ArithmetizationParams, Column>;
 
                 {
                     auto marshalled_value = detail::parse_marshalling_from_file<ConstraintMarshalling>(circuit_file_);
@@ -316,22 +288,20 @@ namespace nil {
 
                 BOOST_LOG_TRIVIAL(info) << "Preprocessing public data";
                 public_preprocessed_data_.emplace(
-                    proof_gen::zk::snark::placeholder_public_preprocessor<BlueprintField, PlaceholderParams>::process(
-                        *constraint_system_,
-                        assignment_table.move_public_table(),
-                        *table_description_,
-                        *lpc_scheme_,
-                        permutation_size
-                    )
+                    nil::crypto3::zk::snark::placeholder_public_preprocessor<BlueprintField, PlaceholderParams>::
+                        process(
+                            *constraint_system_,
+                            assignment_table.move_public_table(),
+                            *table_description_,
+                            *lpc_scheme_,
+                            permutation_size
+                        )
                 );
 
                 BOOST_LOG_TRIVIAL(info) << "Preprocessing private data";
                 private_preprocessed_data_.emplace(
-                    proof_gen::zk::snark::placeholder_private_preprocessor<BlueprintField, PlaceholderParams>::process(
-                        *constraint_system_,
-                        assignment_table.move_private_table(),
-                        *table_description_
-                    )
+                    nil::crypto3::zk::snark::placeholder_private_preprocessor<BlueprintField, PlaceholderParams>::
+                        process(*constraint_system_, assignment_table.move_private_table(), *table_description_)
                 );
                 return true;
             }

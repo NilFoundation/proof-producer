@@ -28,10 +28,6 @@
 #include <nil/marshalling/endianness.hpp>
 #include <nil/marshalling/status_type.hpp>
 
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-#include <nil/actor/zk/snark/systems/plonk/placeholder/proof.hpp>
-#endif
-
 namespace nil {
     namespace proof_generator {
         namespace detail {

@@ -93,10 +93,6 @@ namespace nil {
                 ("grind-param", po::value(&prover_options.lambda)->default_value(prover_options.lambda), "Grind param (69)")
                 ("skip-verification", po::bool_switch(&prover_options.skip_verification), "Skip generated proof verifying step")
                 ("verification-only", po::bool_switch(&prover_options.verification_only), "Read proof for verification instead of writing to it");
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-            options_appender
-                ("shard0-mem-scale", po::value(&prover_options.shard0_mem_scale)->default_value(prover_options.shard0_mem_scale), "Ratio of allocalted shard #0 RAM to other shards RAM");
-#endif
             // clang-format on
             po::options_description cmdline_options("nil; Proof Producer");
             cmdline_options.add(generic).add(config);

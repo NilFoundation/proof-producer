@@ -28,19 +28,8 @@ runs:
           pkg-config \
           wget \
           \
-          libspdlog-dev \
-          liblz4-dev=1.9.3-2build2 \
-          libgnutls28-dev \
-          libprotobuf-dev=3.12.4-1ubuntu7.22.04.1 \
-          libyaml-cpp-dev=0.7.0+dfsg-8build1 \
           libsctp-dev \
-          ragel \
-          xfslibs-dev \
-          systemtap-sdt-dev \
-          libc-ares-dev=1.18.1-1ubuntu0.22.04.2 \
-          libhwloc-dev=2.7.0-2ubuntu1 \
           libc-dev \
-          lksctp-tools \
           libatomic1 \
           clang \
           clang-format

@@ -45,9 +45,6 @@ namespace nil {
             columns_params columns = all_columns_params[0];
             lambda_param lambda = all_lambda_params[0];
             grind_param grind = all_grind_params[0];
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-            int shard0_mem_scale = 1;
-#endif
         };
 
         std::optional<prover_options> parse_args(int argc, char* argv[]);

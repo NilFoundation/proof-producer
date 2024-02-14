@@ -54,11 +54,9 @@ endif()
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3" EXCLUDE_FROM_ALL)
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/module" EXCLUDE_FROM_ALL)
 
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/blueprint" EXCLUDE_FROM_ALL)
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/container" EXCLUDE_FROM_ALL)
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/core" EXCLUDE_FROM_ALL)
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/math" EXCLUDE_FROM_ALL)
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/network" EXCLUDE_FROM_ALL)
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/zk" EXCLUDE_FROM_ALL)
 
 if(NOT PROOF_PRODUCER_VERSION)
@@ -96,14 +94,6 @@ endif()
 set(CPACK_GENERATOR DEB)
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "=nil; Foundation")
-
-set(CPACK_DEBIAN_PACKAGE_DEPENDENCIES_MULTITHREADED_VERSION
-    "libhwloc-dev (>=2.7.0)"
-    "libyaml-cpp-dev (>=0.7.0)"
-    "libfmt-dev (>=8.0.0)"
-    "libnuma-dev (>=2.0.0)"
-)
-string(REPLACE ";" ", " CPACK_DEBIAN_PACKAGE_DEPENDS "${CPACK_DEBIAN_PACKAGE_DEPENDENCIES_MULTITHREADED_VERSION}")
 
 set(CPACK_PACKAGE_VERSION "${PROOF_PRODUCER_VERSION_MAJOR}.${PROOF_PRODUCER_VERSION_MINOR}.${PROOF_PRODUCER_VERSION_PATCH}")
 if(PROOF_PRODUCER_VERSION_INCREMENT)

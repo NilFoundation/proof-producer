@@ -21,14 +21,6 @@
 #include <optional>
 #include <utility>
 
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-#include <nil/actor/core/app_template.hh>
-#include <nil/actor/core/future.hh>
-#include <nil/actor/core/posix.hh>
-#include <nil/actor/core/reactor.hh>
-#include <nil/actor/core/thread.hh>
-#endif
-
 #include <nil/proof-generator/arg_parser.hpp>
 #include <nil/proof-generator/file_operations.hpp>
 // #include <nil/proof-generator/arithmetization_params.hpp>
@@ -62,39 +54,7 @@ int run_prover(const nil::proof_generator::prover_options& prover_options) {
         }
         return prover_result ? 0 : 1;
     };
-#ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-    // For multithreaded version we have to launch Seastar stuff first
-    using namespace nil::actor;
-    std::vector<std::string> arguments = {
-        "unused_program_name",
-        "--shard0-mem-scale",
-        std::to_string(prover_options.shard0_mem_scale)};
-
-    // Constructing argc and argv
-    std::vector<char*> argv;
-    for (const auto& arg : arguments)
-        argv.push_back((char*)arg.data());
-    argv.push_back(nullptr);
-
-    // Don't interfere with actor signal handling
-    sigset_t mask;
-    sigfillset(&mask);
-    for (auto sig : {SIGSEGV}) {
-        sigdelset(&mask, sig);
-    }
-    auto r = ::pthread_sigmask(SIG_BLOCK, &mask, NULL);
-    if (r) {
-        BOOST_LOG_TRIVIAL(error) << "Error blocking signals. Aborting.";
-        abort();
-    }
-
-    nil::actor::app_template app;
-    return app.run(arguments.size(), argv.data(), [this, &app, &prover_task] {
-        return nil::actor::async(prover_task);
-    });
-#else
     return prover_task();
-#endif
 }
 
 // We could either make lambdas for generating Cartesian products of templates,
