@@ -2,6 +2,7 @@
 // Copyright (c) 2021 Mikhail Komarov <nemo@nil.foundation>
 // Copyright (c) 2021 Nikita Kaskov <nbering@nil.foundation>
 // Copyright (c) 2022-2023 Ilia Shirobokov <i.shirobokov@nil.foundation>
+// Copyright (c) 2024 Iosif (x-mass) <x-mass@nil.foundation>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,95 +20,82 @@
 #ifndef PROOF_GENERATOR_ASSIGNER_PROOF_HPP
 #define PROOF_GENERATOR_ASSIGNER_PROOF_HPP
 
-#include <sstream>
 #include <fstream>
 #include <random>
+#include <sstream>
 
-// TODO: remove this. Required only because of an incorrect assert check in zk
-#include <boost/test/unit_test.hpp>
-
-#include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
-#include <boost/log/expressions.hpp>
+#include <boost/test/unit_test.hpp> // TODO: remove this. Required only because of an incorrect assert check in zk
 
-#include <nil/crypto3/algebra/curves/pallas.hpp>
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
-#include <nil/crypto3/marshalling/zk/types/plonk/constraint_system.hpp>
-#include <nil/crypto3/marshalling/zk/types/plonk/assignment_table.hpp>
 #include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
+#include <nil/crypto3/marshalling/zk/types/plonk/assignment_table.hpp>
+#include <nil/crypto3/marshalling/zk/types/plonk/constraint_system.hpp>
 #include <nil/crypto3/multiprecision/cpp_int.hpp>
-#include <nil/crypto3/hash/keccak.hpp>
 
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
 
-#include <nil/actor/zk/snark/arithmetization/plonk/params.hpp>
+#include <nil/actor/math/algorithms/calculate_domain_set.hpp>
 #include <nil/actor/zk/snark/arithmetization/plonk/constraint_system.hpp>
+#include <nil/actor/zk/snark/arithmetization/plonk/params.hpp>
+#include <nil/actor/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
 #include <nil/actor/zk/snark/systems/plonk/placeholder/params.hpp>
 #include <nil/actor/zk/snark/systems/plonk/placeholder/preprocessor.hpp>
-#include <nil/actor/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/actor/zk/snark/systems/plonk/placeholder/profiling.hpp>
 #include <nil/actor/zk/snark/systems/plonk/placeholder/proof.hpp>
+#include <nil/actor/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/actor/zk/snark/systems/plonk/placeholder/verifier.hpp>
-#include <nil/actor/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
-#include <nil/actor/math/algorithms/calculate_domain_set.hpp>
 
 #else
 
-#include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
+#include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
+#include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/params.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/preprocessor.hpp>
-#include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/profiling.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/proof.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
-#include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
-#include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
 
 #endif
 
-#include <nil/marshalling/status_type.hpp>
-#include <nil/marshalling/field_type.hpp>
 #include <nil/marshalling/endianness.hpp>
-
+#include <nil/marshalling/field_type.hpp>
+#include <nil/marshalling/status_type.hpp>
+#include <nil/proof-generator/arithmetization_params.hpp>
 #include <nil/proof-generator/detail/utils.hpp>
+#include <nil/proof-generator/file_operations.hpp>
 
 #ifdef PROOF_GENERATOR_MODE_MULTI_THREADED
-    #define NAMESPACE nil::actor
+namespace proof_gen = nil::actor;
 #else
-    #define NAMESPACE nil::crypto3
+namespace proof_gen = nil::crypto3;
 #endif
 
 namespace nil {
     namespace proof_generator {
         namespace detail {
-
-            bool read_buffer_from_file(std::ifstream &ifile, std::vector<std::uint8_t> &v) {
-                char c;
-                char c1;
-                uint8_t b;
-
-                ifile >> c;
-                if (c != '0')
-                    return false;
-                ifile >> c;
-                if (c != 'x')
-                    return false;
-                while (ifile) {
-                    std::string str = "";
-                    ifile >> c >> c1;
-                    if (!isxdigit(c) || !isxdigit(c1))
-                        return false;
-                    str += c;
-                    str += c1;
-                    b = stoi(str, 0, 0x10);
-                    v.push_back(b);
+            template<typename MarshallingType>
+            std::optional<MarshallingType> parse_marshalling_from_file(const boost::filesystem::path& path) {
+                const auto v = read_file_to_vector(path.c_str());
+                if (!v.has_value()) {
+                    return std::nullopt;
                 }
-                return true;
+
+                MarshallingType marshalled_data;
+                auto read_iter = v->begin();
+                auto status = marshalled_data.read(read_iter, v->size());
+                if (status != nil::marshalling::status_type::success) {
+                    BOOST_LOG_TRIVIAL(error) << "Marshalled structure parsing failed";
+                    return std::nullopt;
+                }
+                return marshalled_data;
             }
 
-            inline std::vector<std::size_t> generate_random_step_list(const std::size_t r, const int max_step) {
-                using dist_type = std::uniform_int_distribution<int>;
+            std::vector<std::size_t> generate_random_step_list(const std::size_t r, const int max_step) {
+                using Distribution = std::uniform_int_distribution<int>;
                 static std::random_device random_engine;
 
                 std::vector<std::size_t> step_list;
@@ -121,7 +109,7 @@ namespace nil {
                         step_list.emplace_back(1);
                         steps_sum += step_list.back();
                     } else {
-                        step_list.emplace_back(dist_type(1, max_step)(random_engine));
+                        step_list.emplace_back(Distribution(1, max_step)(random_engine));
                         steps_sum += step_list.back();
                     }
                 }
@@ -130,7 +118,10 @@ namespace nil {
 
             template<typename FRIScheme, typename FieldType>
             typename FRIScheme::params_type create_fri_params(
-                    std::size_t degree_log, const int max_step = 1, std::size_t expand_factor = 0) {
+                std::size_t degree_log,
+                const int max_step = 1,
+                std::size_t expand_factor = 0
+            ) {
                 std::size_t r = degree_log - 1;
 
                 return typename FRIScheme::params_type(
@@ -144,355 +135,221 @@ namespace nil {
                     expand_factor
                 );
             }
+        } // namespace detail
 
-        }    // namespace detail
-
-        template <typename BlueprintFieldType>
-        bool prover(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file, bool skip_verification) {
-            constexpr std::size_t WitnessColumns = 15;
-            constexpr std::size_t PublicInputColumns = 1;
-            constexpr std::size_t ComponentConstantColumns = 5;
-            constexpr std::size_t LookupConstantColumns = 30;
-            constexpr std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
-            constexpr std::size_t ComponentSelectorColumns = 30;
-            constexpr std::size_t LookupSelectorColumns = 6;
-            constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
-
-            using ArithmetizationParams =
-                NAMESPACE::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns,
-                                                                    SelectorColumns>;
-            using ConstraintSystemType =
-                NAMESPACE::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-            using TableDescriptionType =
-                NAMESPACE::zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams>;
-            using Endianness = nil::marshalling::option::big_endian;
-            using TTypeBase = nil::marshalling::field_type<Endianness>;
-            using value_marshalling_type =
-                nil::crypto3::marshalling::types::plonk_constraint_system<TTypeBase, ConstraintSystemType>;
-
-            using ColumnType = NAMESPACE::zk::snark::plonk_column<BlueprintFieldType>;
-            using AssignmentTableType =
-                NAMESPACE::zk::snark::plonk_table<BlueprintFieldType, ArithmetizationParams, ColumnType>;
-            using table_value_marshalling_type =
-                nil::crypto3::marshalling::types::plonk_assignment_table<TTypeBase, AssignmentTableType>;
-
-            using ColumnsRotationsType = std::array<std::set<int>, ArithmetizationParams::total_columns>;
-
-            ConstraintSystemType constraint_system;
-            {
-                std::ifstream ifile;
-                ifile.open(circuit_file_name, std::ios_base::binary | std::ios_base::in);
-                if (!ifile.is_open()) {
-                    BOOST_LOG_TRIVIAL(error) << "Cannot find input file " << circuit_file_name;
-                    return false;
-                }
-
-                std::vector<std::uint8_t> v;
-                ifile.seekg(0, std::ios_base::end);
-                const auto fsize = ifile.tellg();
-                v.resize(fsize);
-                ifile.seekg(0, std::ios_base::beg);
-                ifile.read(reinterpret_cast<char*>(v.data()), fsize);
-                if (!ifile) {
-                    BOOST_LOG_TRIVIAL(error) << "Cannot parse input file " << circuit_file_name;
-                    return false;
-                }
-                ifile.close();
-
-                value_marshalling_type marshalled_data;
-                auto read_iter = v.begin();
-                auto status = marshalled_data.read(read_iter, v.size());
-                constraint_system = nil::crypto3::marshalling::types::make_plonk_constraint_system<Endianness, ConstraintSystemType>(
-                        marshalled_data
-                );
+        template<
+            typename CurveType,
+            typename HashType,
+            std::size_t ColumnsParamsIdx,
+            std::size_t LambdaParamIdx,
+            std::size_t GrindParamIdx>
+        class Prover {
+        public:
+            Prover(
+                boost::filesystem::path circuit_file_name,
+                boost::filesystem::path assignment_table_file_name,
+                boost::filesystem::path proof_file
+            )
+                : circuit_file_(circuit_file_name)
+                , assignment_table_file_(assignment_table_file_name)
+                , proof_file_(proof_file) {
             }
 
-            TableDescriptionType table_description;
-            AssignmentTableType assignment_table;
-            {
-                std::ifstream iassignment;
-                iassignment.open(assignment_table_file_name, std::ios_base::binary | std::ios_base::in);
-                if (!iassignment) {
-                    BOOST_LOG_TRIVIAL(error) << "Cannot open " << assignment_table_file_name;
+            bool generate_to_file(bool skip_verification) {
+                if (!nil::proof_generator::can_write_to_file(proof_file_.string())) {
+                    BOOST_LOG_TRIVIAL(error) << "Can't write to file " << proof_file_;
                     return false;
                 }
-                std::vector<std::uint8_t> v;
-                iassignment.seekg(0, std::ios_base::end);
-                const auto fsize = iassignment.tellg();
-                v.resize(fsize);
-                iassignment.seekg(0, std::ios_base::beg);
-                iassignment.read(reinterpret_cast<char*>(v.data()), fsize);
-                if (!iassignment) {
-                    BOOST_LOG_TRIVIAL(error) << "Cannot parse input file " << assignment_table_file_name;
-                    return false;
-                }
-                iassignment.close();
-                table_value_marshalling_type marshalled_table_data;
-                auto read_iter = v.begin();
-                auto status = marshalled_table_data.read(read_iter, v.size());
-                std::tie(table_description.usable_rows_amount, assignment_table) =
-                    nil::crypto3::marshalling::types::make_assignment_table<Endianness, AssignmentTableType>(
-                        marshalled_table_data
-                    );
-                table_description.rows_amount = assignment_table.rows_amount();
-            }
 
-            // 26 -- real value
-            const std::size_t Lambda = 9;
-            using Hash = nil::crypto3::hashes::keccak_1600<256>;
-            using circuit_params = NAMESPACE::zk::snark::placeholder_circuit_params<
-                BlueprintFieldType, ArithmetizationParams
-            >;
+                prepare_for_operation();
 
-            // Lambdas and grinding bits should be passed threw preprocessor directives
-            std::size_t table_rows_log = std::ceil(std::log2(table_description.rows_amount));
-            using lpc_params_type = NAMESPACE::zk::commitments::list_polynomial_commitment_params<
-                Hash,
-                Hash,
-                Lambda,
-                2
-            >;
-            using lpc_type = NAMESPACE::zk::commitments::list_polynomial_commitment<BlueprintFieldType, lpc_params_type>;
-            using lpc_scheme_type = typename NAMESPACE::zk::commitments::lpc_commitment_scheme<lpc_type>;
-            using placeholder_params = NAMESPACE::zk::snark::placeholder_params<circuit_params, lpc_scheme_type>;
-            using policy_type = NAMESPACE::zk::snark::detail::placeholder_policy<BlueprintFieldType, placeholder_params>;
+                BOOST_ASSERT(public_preprocessed_data_);
+                BOOST_ASSERT(private_preprocessed_data_);
+                BOOST_ASSERT(table_description_);
+                BOOST_ASSERT(constraint_system_);
+                BOOST_ASSERT(lpc_scheme_);
+                BOOST_ASSERT(fri_params_);
 
-            auto fri_params = proof_generator::detail::create_fri_params<typename lpc_type::fri_type, BlueprintFieldType>(table_rows_log);
-            std::size_t permutation_size =
-                table_description.witness_columns + table_description.public_input_columns + ComponentConstantColumns;
-            lpc_scheme_type lpc_scheme(fri_params);
-
-            BOOST_LOG_TRIVIAL(info) << "Preprocessing public data..." << std::endl;
-            typename NAMESPACE::zk::snark::placeholder_public_preprocessor<
-                BlueprintFieldType, placeholder_params>::preprocessed_data_type public_preprocessed_data =
-            NAMESPACE::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params>::process(
-                constraint_system, assignment_table.move_public_table(), table_description, lpc_scheme, permutation_size);
-
-            BOOST_LOG_TRIVIAL(info) << "Preprocessing private data..." << std::endl;
-            typename NAMESPACE::zk::snark::placeholder_private_preprocessor<
-                BlueprintFieldType, placeholder_params>::preprocessed_data_type private_preprocessed_data =
-                NAMESPACE::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params>::process(
-                    constraint_system, assignment_table.move_private_table(), table_description
+                BOOST_LOG_TRIVIAL(info) << "Generating proof...";
+                Proof proof = proof_gen::zk::snark::placeholder_prover<BlueprintField, PlaceholderParams>::process(
+                    *public_preprocessed_data_,
+                    *private_preprocessed_data_,
+                    *table_description_,
+                    *constraint_system_,
+                    *lpc_scheme_
                 );
-
-            if (constraint_system.num_gates() == 0){
-                BOOST_LOG_TRIVIAL(info) << "Generating proof (zero gates)..." << std::endl;
-                BOOST_LOG_TRIVIAL(info) << "Proof generated" << std::endl;
-                BOOST_LOG_TRIVIAL(info) << "Writing proof to " << proof_file << "..." << std::endl;
-                std::fstream fs;
-                fs.open(proof_file, std::ios::out);
-                fs.close();
-                BOOST_LOG_TRIVIAL(info) << "Proof written" << std::endl;
-            } else {
-                BOOST_LOG_TRIVIAL(info) << "Generating proof..." << std::endl;
-                using ProofType = NAMESPACE::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>;
-                BOOST_LOG_TRIVIAL(info) << "Proof Type = " << typeid(ProofType).name() << std::endl;
-
-                ProofType proof = NAMESPACE::zk::snark::placeholder_prover<BlueprintFieldType, placeholder_params>::process(
-                    public_preprocessed_data, private_preprocessed_data, table_description, constraint_system,
-                    lpc_scheme);
-                BOOST_LOG_TRIVIAL(info) << "Proof generated" << std::endl;
-
+                BOOST_LOG_TRIVIAL(info) << "Proof generated";
 
                 if (skip_verification) {
-                    BOOST_LOG_TRIVIAL(info) << "Skipping proof verification" << std::endl;
+                    BOOST_LOG_TRIVIAL(info) << "Skipping proof verification";
                 } else {
-                    BOOST_LOG_TRIVIAL(info) << "Verifying proof..." << std::endl;
-                    bool verification_result =
-                        NAMESPACE::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
-                            public_preprocessed_data, proof, constraint_system, lpc_scheme
-                        );
-
-                    if (!verification_result) {
-                        BOOST_LOG_TRIVIAL(error) << "Something went wrong - proof is not verified";
+                    if (!verify(proof)) {
                         return false;
                     }
-
-                    BOOST_LOG_TRIVIAL(info) << "Proof is verified" << std::endl;
                 }
 
-                BOOST_LOG_TRIVIAL(info) << "Writing proof to " << proof_file;
+                BOOST_LOG_TRIVIAL(info) << "Writing proof to " << proof_file_;
                 auto filled_placeholder_proof =
-                    nil::crypto3::marshalling::types::fill_placeholder_proof<Endianness, ProofType>(proof, fri_params);
-                proof_print<Endianness, ProofType>(proof, fri_params, proof_file);
+                    nil::crypto3::marshalling::types::fill_placeholder_proof<Endianness, Proof>(proof, *fri_params_);
+                nil::proof_generator::detail::proof_print<Endianness, Proof>(proof, *fri_params_, proof_file_);
                 BOOST_LOG_TRIVIAL(info) << "Proof written";
                 return true;
             }
-        }
 
-        template <typename BlueprintFieldType>
-        bool verify(boost::filesystem::path circuit_file_name, boost::filesystem::path assignment_table_file_name, boost::filesystem::path proof_file, bool skip_verification) {
-            constexpr std::size_t WitnessColumns = 15;
-            constexpr std::size_t PublicInputColumns = 1;
-            constexpr std::size_t ComponentConstantColumns = 5;
-            constexpr std::size_t LookupConstantColumns = 30;
-            constexpr std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
-            constexpr std::size_t ComponentSelectorColumns = 30;
-            constexpr std::size_t LookupSelectorColumns = 6;
-            constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
+            bool verify_from_file() {
+                prepare_for_operation();
+                using ProofMarshalling = nil::crypto3::marshalling::types::
+                    placeholder_proof<nil::marshalling::field_type<Endianness>, Proof>;
+                auto marshalled_proof = detail::parse_marshalling_from_file<ProofMarshalling>(proof_file_);
+                if (!marshalled_proof) {
+                    return false;
+                }
+                return verify(
+                    nil::crypto3::marshalling::types::make_placeholder_proof<Endianness, Proof>(*marshalled_proof)
+                );
+            }
 
-            using ArithmetizationParams =
-                NAMESPACE::zk::snark::plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns,
-                                                                    SelectorColumns>;
-            using ConstraintSystemType =
-                NAMESPACE::zk::snark::plonk_constraint_system<BlueprintFieldType, ArithmetizationParams>;
-            using TableDescriptionType =
-                NAMESPACE::zk::snark::plonk_table_description<BlueprintFieldType, ArithmetizationParams>;
+        private:
+            // C++20 allows passing non-type template param by value, so we could make the
+            // current function use
+            //   columns_policy type directly instead of index after standard upgrade.
+            // clang-format off
+            static constexpr std::size_t WitnessColumns = all_columns_params[ColumnsParamsIdx].witness_columns;
+            static constexpr std::size_t PublicInputColumns = all_columns_params[ColumnsParamsIdx].public_input_columns;
+            static constexpr std::size_t ComponentConstantColumns = all_columns_params[ColumnsParamsIdx].component_constant_columns;
+            static constexpr std::size_t LookupConstantColumns = all_columns_params[ColumnsParamsIdx].lookup_constant_columns;
+            static constexpr std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
+            static constexpr std::size_t ComponentSelectorColumns = all_columns_params[ColumnsParamsIdx].component_selector_columns;
+            static constexpr std::size_t LookupSelectorColumns = all_columns_params[ColumnsParamsIdx].lookup_selector_columns;
+            static constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
+            // clang-format on
+
+            using ArithmetizationParams = proof_gen::zk::snark::
+                plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
+            using BlueprintField = typename CurveType::base_field_type;
+            using LpcParams = proof_gen::zk::commitments::
+                list_polynomial_commitment_params<HashType, HashType, all_lambda_params[LambdaParamIdx], 2>;
+            using Lpc = proof_gen::zk::commitments::list_polynomial_commitment<BlueprintField, LpcParams>;
+            using LpcScheme = typename proof_gen::zk::commitments::lpc_commitment_scheme<Lpc>;
+            using CircuitParams =
+                proof_gen::zk::snark::placeholder_circuit_params<BlueprintField, ArithmetizationParams>;
+            using PlaceholderParams = proof_gen::zk::snark::placeholder_params<CircuitParams, LpcScheme>;
+            using Proof = proof_gen::zk::snark::placeholder_proof<BlueprintField, PlaceholderParams>;
+            using PublicPreprocessedData = typename proof_gen::zk::snark::
+                placeholder_public_preprocessor<BlueprintField, PlaceholderParams>::preprocessed_data_type;
+            using PrivatePreprocessedData = typename proof_gen::zk::snark::
+                placeholder_private_preprocessor<BlueprintField, PlaceholderParams>::preprocessed_data_type;
+            using ConstraintSystem =
+                proof_gen::zk::snark::plonk_constraint_system<BlueprintField, ArithmetizationParams>;
+            using TableDescription =
+                proof_gen::zk::snark::plonk_table_description<BlueprintField, ArithmetizationParams>;
             using Endianness = nil::marshalling::option::big_endian;
-            using TTypeBase = nil::marshalling::field_type<Endianness>;
-            using value_marshalling_type =
-                nil::crypto3::marshalling::types::plonk_constraint_system<TTypeBase, ConstraintSystemType>;
+            using FriParams = typename Lpc::fri_type::params_type;
 
-            using ColumnType = NAMESPACE::zk::snark::plonk_column<BlueprintFieldType>;
-            using AssignmentTableType =
-                NAMESPACE::zk::snark::plonk_table<BlueprintFieldType, ArithmetizationParams, ColumnType>;
-            using table_value_marshalling_type =
-                nil::crypto3::marshalling::types::plonk_assignment_table<TTypeBase, AssignmentTableType>;
-
-            using ColumnsRotationsType = std::array<std::set<int>, ArithmetizationParams::total_columns>;
-
-            ConstraintSystemType constraint_system;
-            {
-                std::ifstream ifile;
-                ifile.open(circuit_file_name, std::ios_base::binary | std::ios_base::in);
-                if (!ifile.is_open()) {
-                    BOOST_LOG_TRIVIAL(error) << "Cannot find input file " << circuit_file_name;
-                    return false;
-                }
-
-                std::vector<std::uint8_t> v;
-                ifile.seekg(0, std::ios_base::end);
-                const auto fsize = ifile.tellg();
-                v.resize(fsize);
-                ifile.seekg(0, std::ios_base::beg);
-                ifile.read(reinterpret_cast<char*>(v.data()), fsize);
-                if (!ifile) {
-                    BOOST_LOG_TRIVIAL(error) << "Cannot parse input file " << circuit_file_name;
-                    return false;
-                }
-                ifile.close();
-
-                value_marshalling_type marshalled_data;
-                auto read_iter = v.begin();
-                auto status = marshalled_data.read(read_iter, v.size());
-                constraint_system = nil::crypto3::marshalling::types::make_plonk_constraint_system<Endianness, ConstraintSystemType>(
-                        marshalled_data
-                );
-            }
-
-            TableDescriptionType table_description;
-            AssignmentTableType assignment_table;
-            {
-                std::ifstream iassignment;
-                iassignment.open(assignment_table_file_name, std::ios_base::binary | std::ios_base::in);
-                if (!iassignment) {
-                    BOOST_LOG_TRIVIAL(error) << "Cannot open " << assignment_table_file_name;
-                    return false;
-                }
-                std::vector<std::uint8_t> v;
-                iassignment.seekg(0, std::ios_base::end);
-                const auto fsize = iassignment.tellg();
-                v.resize(fsize);
-                iassignment.seekg(0, std::ios_base::beg);
-                iassignment.read(reinterpret_cast<char*>(v.data()), fsize);
-                if (!iassignment) {
-                    BOOST_LOG_TRIVIAL(error) << "Cannot parse input file " << assignment_table_file_name;
-                    return false;
-                }
-                iassignment.close();
-                table_value_marshalling_type marshalled_table_data;
-                auto read_iter = v.begin();
-                auto status = marshalled_table_data.read(read_iter, v.size());
-                std::tie(table_description.usable_rows_amount, assignment_table) =
-                    nil::crypto3::marshalling::types::make_assignment_table<Endianness, AssignmentTableType>(
-                        marshalled_table_data
+            bool verify(const Proof& proof) const {
+                BOOST_LOG_TRIVIAL(info) << "Verifying proof...";
+                bool verification_result =
+                    proof_gen::zk::snark::placeholder_verifier<BlueprintField, PlaceholderParams>::process(
+                        *public_preprocessed_data_,
+                        proof,
+                        *constraint_system_,
+                        *lpc_scheme_
                     );
-                table_description.rows_amount = assignment_table.rows_amount();
-            }
 
-            // 26 -- real value
-            const std::size_t Lambda = 9;
-            using Hash = nil::crypto3::hashes::keccak_1600<256>;
-            using circuit_params = NAMESPACE::zk::snark::placeholder_circuit_params<
-                BlueprintFieldType, ArithmetizationParams
-            >;
-
-            // Lambdas and grinding bits should be passed threw preprocessor directives
-            std::size_t table_rows_log = std::ceil(std::log2(table_description.rows_amount));
-            using lpc_params_type = NAMESPACE::zk::commitments::list_polynomial_commitment_params<
-                Hash,
-                Hash,
-                Lambda,
-                2
-            >;
-            using lpc_type = NAMESPACE::zk::commitments::list_polynomial_commitment<BlueprintFieldType, lpc_params_type>;
-            using lpc_scheme_type = typename NAMESPACE::zk::commitments::lpc_commitment_scheme<lpc_type>;
-            using placeholder_params = NAMESPACE::zk::snark::placeholder_params<circuit_params, lpc_scheme_type>;
-            using policy_type = NAMESPACE::zk::snark::detail::placeholder_policy<BlueprintFieldType, placeholder_params>;
-
-            auto fri_params = proof_generator::detail::create_fri_params<typename lpc_type::fri_type, BlueprintFieldType>(table_rows_log);
-            std::size_t permutation_size =
-                table_description.witness_columns + table_description.public_input_columns + ComponentConstantColumns;
-            lpc_scheme_type lpc_scheme(fri_params);
-
-            BOOST_LOG_TRIVIAL(info) << "Preprocessing public data..." << std::endl;
-            typename NAMESPACE::zk::snark::placeholder_public_preprocessor<
-                BlueprintFieldType, placeholder_params>::preprocessed_data_type public_preprocessed_data =
-            NAMESPACE::zk::snark::placeholder_public_preprocessor<BlueprintFieldType, placeholder_params>::process(
-                constraint_system, assignment_table.move_public_table(), table_description, lpc_scheme, permutation_size);
-
-            BOOST_LOG_TRIVIAL(info) << "Preprocessing private data..." << std::endl;
-            typename NAMESPACE::zk::snark::placeholder_private_preprocessor<
-                BlueprintFieldType, placeholder_params>::preprocessed_data_type private_preprocessed_data =
-                NAMESPACE::zk::snark::placeholder_private_preprocessor<BlueprintFieldType, placeholder_params>::process(
-                    constraint_system, assignment_table.move_private_table(), table_description
-                );
-
-            using ProofType = NAMESPACE::zk::snark::placeholder_proof<BlueprintFieldType, placeholder_params>;
-
-            BOOST_LOG_TRIVIAL(info) << "Proof Type = " << typeid(ProofType).name() << std::endl;
-            ProofType proof;
-            {
-                using proof_marshalling_type =
-                    nil::crypto3::marshalling::types::placeholder_proof<nil::marshalling::field_type<Endianness>, ProofType>;
-                std::ifstream iproof;
-                iproof.open(proof_file, std::ios_base::binary | std::ios_base::in);
-                if (!iproof) {
-                    BOOST_LOG_TRIVIAL(error) << "Cannot open " << proof_file;
-                    return false;
+                if (verification_result) {
+                    BOOST_LOG_TRIVIAL(info) << "Proof is verified";
+                } else {
+                    BOOST_LOG_TRIVIAL(error) << "Proof verification failed";
                 }
 
-                std::vector<std::uint8_t> v;
-                if (!detail::read_buffer_from_file(iproof, v)) {
-                    BOOST_LOG_TRIVIAL(error) << "Cannot parse input file " << proof_file << std::endl;
-                    return false;
+                return verification_result;
+            }
+
+            bool prepare_for_operation() {
+                using BlueprintField = typename CurveType::base_field_type;
+                using TTypeBase = nil::marshalling::field_type<Endianness>;
+                using ConstraintMarshalling =
+                    nil::crypto3::marshalling::types::plonk_constraint_system<TTypeBase, ConstraintSystem>;
+
+                using Column = proof_gen::zk::snark::plonk_column<BlueprintField>;
+                using AssignmentTable =
+                    proof_gen::zk::snark::plonk_table<BlueprintField, ArithmetizationParams, Column>;
+
+                {
+                    auto marshalled_value = detail::parse_marshalling_from_file<ConstraintMarshalling>(circuit_file_);
+                    if (!marshalled_value) {
+                        return false;
+                    }
+                    constraint_system_.emplace(
+                        nil::crypto3::marshalling::types::make_plonk_constraint_system<Endianness, ConstraintSystem>(
+                            *marshalled_value
+                        )
+                    );
                 }
 
-                proof_marshalling_type marshalled_proof_data;
-                auto read_iter = v.begin();
-                auto status = marshalled_proof_data.read(read_iter, v.size());
-                proof = nil::crypto3::marshalling::types::make_placeholder_proof<Endianness, ProofType>(
-                    marshalled_proof_data
+                using TableValueMarshalling =
+                    nil::crypto3::marshalling::types::plonk_assignment_table<TTypeBase, AssignmentTable>;
+                AssignmentTable assignment_table;
+                {
+                    TableDescription table_description;
+                    auto marshalled_table =
+                        detail::parse_marshalling_from_file<TableValueMarshalling>(assignment_table_file_);
+                    if (!marshalled_table) {
+                        return false;
+                    }
+                    std::tie(table_description.usable_rows_amount, assignment_table) =
+                        nil::crypto3::marshalling::types::make_assignment_table<Endianness, AssignmentTable>(
+                            *marshalled_table
+                        );
+                    table_description.rows_amount = assignment_table.rows_amount();
+                    table_description_.emplace(table_description);
+                }
+
+                // Lambdas and grinding bits should be passed threw preprocessor directives
+                std::size_t table_rows_log = std::ceil(std::log2(table_description_->rows_amount));
+
+                fri_params_.emplace(detail::create_fri_params<typename Lpc::fri_type, BlueprintField>(table_rows_log));
+
+                std::size_t permutation_size = table_description_->witness_columns
+                    + table_description_->public_input_columns + ComponentConstantColumns;
+                lpc_scheme_.emplace(*fri_params_);
+
+                BOOST_LOG_TRIVIAL(info) << "Preprocessing public data";
+                public_preprocessed_data_.emplace(
+                    proof_gen::zk::snark::placeholder_public_preprocessor<BlueprintField, PlaceholderParams>::process(
+                        *constraint_system_,
+                        assignment_table.move_public_table(),
+                        *table_description_,
+                        *lpc_scheme_,
+                        permutation_size
+                    )
                 );
+
+                BOOST_LOG_TRIVIAL(info) << "Preprocessing private data";
+                private_preprocessed_data_.emplace(
+                    proof_gen::zk::snark::placeholder_private_preprocessor<BlueprintField, PlaceholderParams>::process(
+                        *constraint_system_,
+                        assignment_table.move_private_table(),
+                        *table_description_
+                    )
+                );
+                return true;
             }
 
-            BOOST_LOG_TRIVIAL(info) << "Verifying proof..." << std::endl;
-            bool verification_result =
-                NAMESPACE::zk::snark::placeholder_verifier<BlueprintFieldType, placeholder_params>::process(
-                    public_preprocessed_data, proof, constraint_system, lpc_scheme
-                );
+            const boost::filesystem::path circuit_file_;
+            const boost::filesystem::path assignment_table_file_;
+            const boost::filesystem::path proof_file_;
 
-            if (!verification_result) {
-                BOOST_LOG_TRIVIAL(error) << "Something went wrong - proof is not verified";
-                return false;
-            }
+            // All set on prepare_for_operation()
+            std::optional<PublicPreprocessedData> public_preprocessed_data_;
+            std::optional<PrivatePreprocessedData> private_preprocessed_data_;
+            std::optional<TableDescription> table_description_;
+            std::optional<ConstraintSystem> constraint_system_;
+            std::optional<FriParams> fri_params_;
+            std::optional<LpcScheme> lpc_scheme_;
+        };
 
-            BOOST_LOG_TRIVIAL(info) << "Proof is verified" << std::endl;
-            return true;
-        }
-    }        // namespace proof_generator
-}    // namespace nil
+    } // namespace proof_generator
+} // namespace nil
 
-#undef NAMESPACE
-
-#endif    // PROOF_GENERATOR_ASSIGNER_PROOF_HPP
+#endif // PROOF_GENERATOR_ASSIGNER_PROOF_HPP

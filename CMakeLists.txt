@@ -50,12 +50,16 @@ else()
     set(Boost_USE_STATIC_LIBS FALSE)
 endif()
 
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3")
-add_subdirectories("${CMAKE_CURRENT_LIST_DIR}/libs/actor")
+# EXCLUDE_FROM_ALL is needed so crypto3 and other headers won't be installed
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3" EXCLUDE_FROM_ALL)
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/module" EXCLUDE_FROM_ALL)
 
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/module")
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/plugin")
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/application")
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/blueprint" EXCLUDE_FROM_ALL)
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/container" EXCLUDE_FROM_ALL)
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/core" EXCLUDE_FROM_ALL)
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/math" EXCLUDE_FROM_ALL)
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/network" EXCLUDE_FROM_ALL)
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/zk" EXCLUDE_FROM_ALL)
 
 if(NOT PROOF_PRODUCER_VERSION)
     find_program(GIT_EXECUTABLE NAMES git PATHS /usr/bin /usr/local/bin)
@@ -112,12 +116,7 @@ endif()
 
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
-list(APPEND PROOF_GENERATOR_MODE_LIST single-threaded multi-threaded)
-
-foreach(PROOF_GENERATOR_MODE_SUFFIX IN LISTS PROOF_GENERATOR_MODE_LIST)
-    add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/proof-generator" ${CMAKE_BINARY_DIR}/bin/proof-generator-${PROOF_GENERATOR_MODE_SUFFIX})
-endforeach()
-
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/proof-generator")
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/jsonizer")
 
 install(SCRIPT cmake/create-symlinks.cmake)

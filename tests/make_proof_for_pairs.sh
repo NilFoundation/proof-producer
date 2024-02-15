@@ -13,9 +13,9 @@ make_proof_for_pair() {
     local relative_tbl_path="$(realpath --relative-to="$base_dir" "$tbl_file")"
     local proof_dir="${output_dir}/$(dirname ${relative_tbl_path})"
 
-    local proof_generator_binary="${script_dir}/../build/bin/proof-generator-single-threaded/proof-generator-single-threaded"
+    local proof_generator_binary="${script_dir}/../build/bin/proof-generator/proof-generator-single-threaded"
     if [ "$use_multithreaded" = true ]; then
-        proof_generator_binary="${script_dir}/../build/bin/proof-generator-multi-threaded/proof-generator-multi-threaded"
+        proof_generator_binary="${script_dir}/../build/bin/proof-generator/proof-generator-multi-threaded"
     fi
 
     if [ -f "$crct_file" ]; then

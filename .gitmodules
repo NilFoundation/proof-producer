@@ -7,12 +7,6 @@
 [submodule "libs/module"]
 	path = libs/module
 	url = ../../NilFoundation/module.git
-[submodule "libs/plugin"]
-	path = libs/plugin
-	url = ../../NilFoundation/plugin.git
-[submodule "libs/application"]
-	path = libs/application
-	url = ../../NilFoundation/application.git
 [submodule "libs/actor/core"]
 	path = libs/actor/core
 	url = ../../NilFoundation/actor-core.git

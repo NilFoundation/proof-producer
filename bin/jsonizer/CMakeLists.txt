@@ -62,11 +62,9 @@ list(APPEND libraries
         marshalling::crypto3_multiprecision
         marshalling::crypto3_zk
 
-        dbms::plugin
-        boost::application
-
         Boost::filesystem
         Boost::log
+        Boost::program_options
 )
 
 target_link_libraries(${CURRENT_PROJECT_NAME} ${libraries})
