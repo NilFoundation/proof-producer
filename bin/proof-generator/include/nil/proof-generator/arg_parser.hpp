@@ -35,6 +35,7 @@ namespace nil {
 
         struct prover_options {
             boost::filesystem::path proof_file_path = "proof.bin";
+            boost::filesystem::path preprocessed_common_data_path = "preprocessed_common_data.dat";
             boost::filesystem::path circuit_file_path;
             boost::filesystem::path assignment_table_file_path;
             boost::log::trivial::severity_level log_level = boost::log::trivial::severity_level::info;

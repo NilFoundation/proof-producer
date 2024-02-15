@@ -179,12 +179,11 @@ jobs:
 
       - name: Run clang-format
         run: |
-          find bin -iname '*.cpp' -o -iname '*.hpp' | xargs clang-format -n --Werror
-          if [ $? -ne 0 ]; then
+          if find bin -iname '*.cpp' -o -iname '*.hpp' | xargs clang-format -n --Werror; then
+            echo "Code formatting is correct"
+          else
             echo "Code formatting differs from clang-format's expectations, run 'find bin -iname *.hpp -o -iname *.cpp | xargs clang-format -i'"
             exit 1
-          else
-            echo "Code formatting is correct"
           fi
 
       - name: Mark git directory as safe

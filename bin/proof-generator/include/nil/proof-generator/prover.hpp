@@ -28,6 +28,7 @@
 #include <boost/test/unit_test.hpp> // TODO: remove this. Required only because of an incorrect assert check in zk
 
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
+#include <nil/crypto3/marshalling/zk/types/placeholder/common_data.hpp>
 #include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
 #include <nil/crypto3/marshalling/zk/types/plonk/assignment_table.hpp>
 #include <nil/crypto3/marshalling/zk/types/plonk/constraint_system.hpp>
@@ -47,15 +48,17 @@
 #include <nil/marshalling/field_type.hpp>
 #include <nil/marshalling/status_type.hpp>
 #include <nil/proof-generator/arithmetization_params.hpp>
-#include <nil/proof-generator/detail/utils.hpp>
 #include <nil/proof-generator/file_operations.hpp>
 
 namespace nil {
     namespace proof_generator {
         namespace detail {
             template<typename MarshallingType>
-            std::optional<MarshallingType> parse_marshalling_from_file(const boost::filesystem::path& path) {
-                const auto v = read_file_to_vector(path.c_str());
+            std::optional<MarshallingType> decode_marshalling_from_file(
+                const boost::filesystem::path& path,
+                bool hex = false
+            ) {
+                const auto v = hex ? read_hex_file_to_vector(path.c_str()) : read_file_to_vector(path.c_str());
                 if (!v.has_value()) {
                     return std::nullopt;
                 }
@@ -64,10 +67,28 @@ namespace nil {
                 auto read_iter = v->begin();
                 auto status = marshalled_data.read(read_iter, v->size());
                 if (status != nil::marshalling::status_type::success) {
-                    BOOST_LOG_TRIVIAL(error) << "Marshalled structure parsing failed";
+                    BOOST_LOG_TRIVIAL(error) << "Marshalled structure decoding failed";
                     return std::nullopt;
                 }
                 return marshalled_data;
+            }
+
+            template<typename MarshallingType>
+            bool encode_marshalling_to_file(
+                const boost::filesystem::path& path,
+                const MarshallingType& data_for_marshalling,
+                bool hex = false
+            ) {
+                std::vector<std::uint8_t> v;
+                v.resize(data_for_marshalling.length(), 0x00);
+                auto write_iter = v.begin();
+                nil::marshalling::status_type status = data_for_marshalling.write(write_iter, v.size());
+                if (status != nil::marshalling::status_type::success) {
+                    BOOST_LOG_TRIVIAL(error) << "Marshalled structure encoding failed";
+                    return false;
+                }
+
+                return hex ? write_vector_to_hex_file(v, path.c_str()) : write_vector_to_file(v, path.c_str());
             }
 
             std::vector<std::size_t> generate_random_step_list(const std::size_t r, const int max_step) {
@@ -119,10 +140,12 @@ namespace nil {
         public:
             Prover(
                 boost::filesystem::path circuit_file_name,
+                boost::filesystem::path preprocessed_common_data_file_name,
                 boost::filesystem::path assignment_table_file_name,
                 boost::filesystem::path proof_file
             )
                 : circuit_file_(circuit_file_name)
+                , preprocessed_common_data_file_(preprocessed_common_data_file_name)
                 , assignment_table_file_(assignment_table_file_name)
                 , proof_file_(proof_file) {
             }
@@ -163,22 +186,53 @@ namespace nil {
                 BOOST_LOG_TRIVIAL(info) << "Writing proof to " << proof_file_;
                 auto filled_placeholder_proof =
                     nil::crypto3::marshalling::types::fill_placeholder_proof<Endianness, Proof>(proof, *fri_params_);
-                nil::proof_generator::detail::proof_print<Endianness, Proof>(proof, *fri_params_, proof_file_);
-                BOOST_LOG_TRIVIAL(info) << "Proof written";
-                return true;
+                bool res = nil::proof_generator::detail::encode_marshalling_to_file(
+                    proof_file_,
+                    filled_placeholder_proof,
+                    true
+                );
+                if (res) {
+                    BOOST_LOG_TRIVIAL(info) << "Proof written";
+                }
+
+                return res;
             }
 
             bool verify_from_file() {
                 prepare_for_operation();
                 using ProofMarshalling = nil::crypto3::marshalling::types::
                     placeholder_proof<nil::marshalling::field_type<Endianness>, Proof>;
-                auto marshalled_proof = detail::parse_marshalling_from_file<ProofMarshalling>(proof_file_);
+                BOOST_LOG_TRIVIAL(info) << "Reading proof from file";
+                auto marshalled_proof = detail::decode_marshalling_from_file<ProofMarshalling>(proof_file_, true);
                 if (!marshalled_proof) {
                     return false;
                 }
-                return verify(
-                    nil::crypto3::marshalling::types::make_placeholder_proof<Endianness, Proof>(*marshalled_proof)
+                bool res =
+                    verify(nil::crypto3::marshalling::types::make_placeholder_proof<Endianness, Proof>(*marshalled_proof
+                    ));
+                if (res) {
+                    BOOST_LOG_TRIVIAL(info) << "Proof verified";
+                }
+                return res;
+            }
+
+            bool save_preprocessed_common_data_to_file() {
+                BOOST_LOG_TRIVIAL(info) << "Writing preprocessed common data to file...";
+                using Endianness = nil::marshalling::option::big_endian;
+                using TTypeBase = nil::marshalling::field_type<Endianness>;
+                using CommonData = typename PublicPreprocessedData::preprocessed_data_type::common_data_type;
+                auto marshalled_common_data =
+                    nil::crypto3::marshalling::types::fill_placeholder_common_data<Endianness, CommonData>(
+                        public_preprocessed_data_->common_data
+                    );
+                bool res = nil::proof_generator::detail::encode_marshalling_to_file(
+                    preprocessed_common_data_file_,
+                    marshalled_common_data
                 );
+                if (res) {
+                    BOOST_LOG_TRIVIAL(info) << "Preprocessed common data written";
+                }
+                return res;
             }
 
         private:
@@ -248,7 +302,7 @@ namespace nil {
                     nil::crypto3::zk::snark::plonk_table<BlueprintField, ArithmetizationParams, Column>;
 
                 {
-                    auto marshalled_value = detail::parse_marshalling_from_file<ConstraintMarshalling>(circuit_file_);
+                    auto marshalled_value = detail::decode_marshalling_from_file<ConstraintMarshalling>(circuit_file_);
                     if (!marshalled_value) {
                         return false;
                     }
@@ -265,7 +319,7 @@ namespace nil {
                 {
                     TableDescription table_description;
                     auto marshalled_table =
-                        detail::parse_marshalling_from_file<TableValueMarshalling>(assignment_table_file_);
+                        detail::decode_marshalling_from_file<TableValueMarshalling>(assignment_table_file_);
                     if (!marshalled_table) {
                         return false;
                     }
@@ -307,6 +361,7 @@ namespace nil {
             }
 
             const boost::filesystem::path circuit_file_;
+            const boost::filesystem::path preprocessed_common_data_file_;
             const boost::filesystem::path assignment_table_file_;
             const boost::filesystem::path proof_file_;
 
