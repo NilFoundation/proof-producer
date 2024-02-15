@@ -40,14 +40,15 @@ int run_prover(const nil::proof_generator::prover_options& prover_options) {
     auto prover_task = [&] {
         auto prover = nil::proof_generator::Prover<CurveType, HashType, ColumnsParamsIdx, LambdaParamIdx, GridParamIdx>(
             prover_options.circuit_file_path,
+            prover_options.preprocessed_common_data_path,
             prover_options.assignment_table_file_path,
             prover_options.proof_file_path
         );
         bool prover_result;
         try {
-            prover_result = prover_options.verification_only ?
-                prover.verify_from_file() :
-                prover.generate_to_file(prover_options.skip_verification);
+            prover_result = prover_options.verification_only ? prover.verify_from_file()
+                                                             : prover.generate_to_file(prover_options.skip_verification)
+                    && prover.save_preprocessed_common_data_to_file();
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(error) << e.what();
             return 1;

@@ -25,8 +25,6 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/program_options.hpp>
 
-#include <nil/proof-generator/detail/utils.hpp>
-
 namespace nil {
     namespace proof_generator {
         namespace po = boost::program_options;
@@ -83,6 +81,7 @@ namespace nil {
             // clang-format off
             auto options_appender = config.add_options()
                 ("proof,p", po::value(&prover_options.proof_file_path)->default_value(prover_options.proof_file_path), "Output proof file")
+                ("common-data", po::value(&prover_options.preprocessed_common_data_path)->default_value(prover_options.preprocessed_common_data_path), "Output preprocessed common data file")
                 ("circuit,c", po::value(&prover_options.circuit_file_path)->required(), "Circuit input file")
                 ("assignment-table,t", po::value(&prover_options.assignment_table_file_path)->required(), "Assignment table input file")
                 ("log-level,l", po::value(&prover_options.log_level)->default_value(prover_options.log_level), "Log level (trace, debug, info, warning, error, fatal)")
@@ -164,7 +163,8 @@ namespace nil {
         // to print default values to help message: The rest of the file contains them:
 
         std::ostream& operator<<(std::ostream& strm, const columns_params& columns) {
-            strm << detail::find_index(columns, all_columns_params);
+            auto it = std::find(all_columns_params.cbegin(), all_columns_params.cend(), columns);
+            strm << std::distance(all_columns_params.cbegin(), it);
             return strm;
         }
 
@@ -194,10 +194,11 @@ namespace nil {
             if (pos < str.size() || val < 0) {
                 strm.setstate(std::ios_base::failbit);
             } else {
-                try {
-                    auto idx = detail::find_index<lambda_param>(static_cast<size_t>(val), all_lambda_params);
-                    lambda = all_lambda_params[idx];
-                } catch (std::out_of_range& e) {
+                auto it =
+                    std::find(all_lambda_params.cbegin(), all_lambda_params.cend(), static_cast<lambda_param>(val));
+                if (it != all_lambda_params.cend()) {
+                    lambda = val;
+                } else {
                     strm.setstate(std::ios_base::failbit);
                 }
             }
@@ -217,10 +218,10 @@ namespace nil {
             if (pos < str.size() || val < 0) {
                 strm.setstate(std::ios_base::failbit);
             } else {
-                try {
-                    auto idx = detail::find_index<grind_param>(static_cast<size_t>(val), all_grind_params);
-                    grind = all_grind_params[idx];
-                } catch (std::out_of_range& e) {
+                auto it = std::find(all_grind_params.cbegin(), all_grind_params.cend(), static_cast<grind_param>(val));
+                if (it != all_grind_params.cend()) {
+                    grind = val;
+                } else {
                     strm.setstate(std::ios_base::failbit);
                 }
             }
