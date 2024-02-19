@@ -31,10 +31,11 @@ namespace nil {
         // Available in runtime columns params. Order is:
         //   witness | public_input | component_constant | component_selector |
         //   lookup_constant | lookup_selector
-        constexpr std::array<columns_params, 3> all_columns_params = {{
+        constexpr std::array<columns_params, 4> all_columns_params = {{
             {15, 1, 5, 50, 30, 6},
             {15, 1, 5, 60, 0, 0},
-            {15, 1, 2, 50, 14, 6}
+            {15, 1, 2, 50, 14, 6},
+            {15, 1, 5, 30, 30, 6}
             // Add more params as needed.
         }};
 
