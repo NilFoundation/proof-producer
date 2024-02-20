@@ -46,6 +46,7 @@ namespace nil {
             columns_params columns = all_columns_params[0];
             lambda_param lambda = all_lambda_params[0];
             grind_param grind = all_grind_params[0];
+            std::size_t expand_factor = 2;
         };
 
         std::optional<prover_options> parse_args(int argc, char* argv[]);

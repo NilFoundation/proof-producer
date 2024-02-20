@@ -142,12 +142,14 @@ namespace nil {
                 boost::filesystem::path circuit_file_name,
                 boost::filesystem::path preprocessed_common_data_file_name,
                 boost::filesystem::path assignment_table_file_name,
-                boost::filesystem::path proof_file
+                boost::filesystem::path proof_file,
+                std::size_t expand_factor
             )
                 : circuit_file_(circuit_file_name)
                 , preprocessed_common_data_file_(preprocessed_common_data_file_name)
                 , assignment_table_file_(assignment_table_file_name)
-                , proof_file_(proof_file) {
+                , proof_file_(proof_file)
+                , expand_factor_(expand_factor) {
             }
 
             bool generate_to_file(bool skip_verification) {
@@ -334,7 +336,9 @@ namespace nil {
                 // Lambdas and grinding bits should be passed threw preprocessor directives
                 std::size_t table_rows_log = std::ceil(std::log2(table_description_->rows_amount));
 
-                fri_params_.emplace(detail::create_fri_params<typename Lpc::fri_type, BlueprintField>(table_rows_log));
+                fri_params_.emplace(
+                    detail::create_fri_params<typename Lpc::fri_type, BlueprintField>(table_rows_log, 1, expand_factor_)
+                );
 
                 std::size_t permutation_size = table_description_->witness_columns
                     + table_description_->public_input_columns + ComponentConstantColumns;
@@ -364,6 +368,7 @@ namespace nil {
             const boost::filesystem::path preprocessed_common_data_file_;
             const boost::filesystem::path assignment_table_file_;
             const boost::filesystem::path proof_file_;
+            const std::size_t expand_factor_;
 
             // All set on prepare_for_operation()
             std::optional<PublicPreprocessedData> public_preprocessed_data_;

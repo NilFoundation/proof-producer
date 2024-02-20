@@ -42,7 +42,8 @@ int run_prover(const nil::proof_generator::prover_options& prover_options) {
             prover_options.circuit_file_path,
             prover_options.preprocessed_common_data_path,
             prover_options.assignment_table_file_path,
-            prover_options.proof_file_path
+            prover_options.proof_file_path,
+            prover_options.expand_factor
         );
         bool prover_result;
         try {
