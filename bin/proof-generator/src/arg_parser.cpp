@@ -90,6 +90,7 @@ namespace nil {
                 ("columns-params", po::value(&prover_options.columns)->default_value(prover_options.columns), "Columns params, use --list-columns-params to list")
                 ("lambda-param", po::value(&prover_options.lambda)->default_value(prover_options.lambda), "Lambda param (9)")
                 ("grind-param", po::value(&prover_options.lambda)->default_value(prover_options.lambda), "Grind param (69)")
+                ("expand-factor", po::value(&prover_options.expand_factor)->default_value(prover_options.expand_factor), "Expand factor")
                 ("skip-verification", po::bool_switch(&prover_options.skip_verification), "Skip generated proof verifying step")
                 ("verification-only", po::bool_switch(&prover_options.verification_only), "Read proof for verification instead of writing to it");
             // clang-format on
