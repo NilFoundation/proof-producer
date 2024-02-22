@@ -23,26 +23,21 @@
 
 #include <nil/proof-generator/arg_parser.hpp>
 #include <nil/proof-generator/file_operations.hpp>
-// #include <nil/proof-generator/arithmetization_params.hpp>
 #include <nil/proof-generator/prover.hpp>
 
 #undef B0
 
 using namespace nil::proof_generator;
 
-template<
-    typename CurveType,
-    std::size_t ColumnsParamsIdx,
-    std::size_t LambdaParamIdx,
-    typename HashType,
-    std::size_t GridParamIdx>
+template<typename CurveType, std::size_t LambdaParamIdx, typename HashType, std::size_t GridParamIdx>
 int run_prover(const nil::proof_generator::ProverOptions& prover_options) {
     auto prover_task = [&] {
-        auto prover = nil::proof_generator::Prover<CurveType, HashType, ColumnsParamsIdx, LambdaParamIdx, GridParamIdx>(
+        auto prover = nil::proof_generator::Prover<CurveType, HashType, LambdaParamIdx, GridParamIdx>(
             prover_options.circuit_file_path,
             prover_options.preprocessed_common_data_path,
             prover_options.assignment_table_file_path,
             prover_options.proof_file_path,
+            prover_options.component_constant_columns,
             prover_options.expand_factor
         );
         bool prover_result;
@@ -62,47 +57,34 @@ int run_prover(const nil::proof_generator::ProverOptions& prover_options) {
 // We could either make lambdas for generating Cartesian products of templates,
 // but this would lead to callback hell. Instead, we declare extra function for
 // each factor. Last declared function starts the chain.
-template<typename CurveType, std::size_t ColumnsParamsIdx, std::size_t LambdaParamIdx, typename HashType>
+template<typename CurveType, std::size_t LambdaParamIdx, typename HashType>
 int grind_param_wrapper(const ProverOptions& prover_options) {
     int ret;
     auto run_prover_void = [&prover_options, &ret]<std::size_t GrindParamIdx>() {
-        ret = run_prover<CurveType, ColumnsParamsIdx, LambdaParamIdx, HashType, GrindParamIdx>(prover_options);
+        ret = run_prover<CurveType, LambdaParamIdx, HashType, GrindParamIdx>(prover_options);
     };
     generate_templates_from_array_for_runtime_check<all_grind_params>(prover_options.grind, run_prover_void);
     return ret;
 }
 
-template<typename CurveType, std::size_t ColumnsParamsIdx, std::size_t LambdaParamIdx>
+template<typename CurveType, std::size_t LambdaParamIdx>
 int hash_wrapper(const ProverOptions& prover_options) {
     int ret;
-    auto run_prover_wrapper = [&prover_options, &ret]<typename HashTypeIdentity>() {
+    auto run_prover_wrapper_void = [&prover_options, &ret]<typename HashTypeIdentity>() {
         using HashType = typename HashTypeIdentity::type;
-        ret = grind_param_wrapper<CurveType, ColumnsParamsIdx, LambdaParamIdx, HashType>(prover_options);
+        ret = grind_param_wrapper<CurveType, LambdaParamIdx, HashType>(prover_options);
     };
-    pass_variant_type_to_template_func<HashesVariant>(prover_options.hash_type, run_prover_wrapper);
-    return ret;
-}
-
-template<typename CurveType, std::size_t ColumnsParamsIdx>
-int lambda_param_wrapper(const ProverOptions& prover_options) {
-    int ret;
-    auto hash_wrapper_void = [&prover_options, &ret]<std::size_t LambdaParamIdx>() {
-        ret = hash_wrapper<CurveType, ColumnsParamsIdx, LambdaParamIdx>(prover_options);
-    };
-    generate_templates_from_array_for_runtime_check<all_lambda_params>(prover_options.lambda, hash_wrapper_void);
+    pass_variant_type_to_template_func<HashesVariant>(prover_options.hash_type, run_prover_wrapper_void);
     return ret;
 }
 
 template<typename CurveType>
-int columns_params_wrapper(const ProverOptions& prover_options) {
+int lambda_param_wrapper(const ProverOptions& prover_options) {
     int ret;
-    auto columns_params_wrapper_void = [&prover_options, &ret]<std::size_t ColumnsParamsIdx>() {
-        ret = lambda_param_wrapper<CurveType, ColumnsParamsIdx>(prover_options);
+    auto hash_wrapper_void = [&prover_options, &ret]<std::size_t LambdaParamIdx>() {
+        ret = hash_wrapper<CurveType, LambdaParamIdx>(prover_options);
     };
-    generate_templates_from_array_for_runtime_check<all_columns_params>(
-        prover_options.columns,
-        columns_params_wrapper_void
-    );
+    generate_templates_from_array_for_runtime_check<all_lambda_params>(prover_options.lambda, hash_wrapper_void);
     return ret;
 }
 
@@ -110,7 +92,7 @@ int curve_wrapper(const ProverOptions& prover_options) {
     int ret;
     auto curves_wrapper_void = [&prover_options, &ret]<typename CurveTypeIdentity>() {
         using CurveType = typename CurveTypeIdentity::type;
-        ret = columns_params_wrapper<CurveType>(prover_options);
+        ret = lambda_param_wrapper<CurveType>(prover_options);
     };
     pass_variant_type_to_template_func<CurvesVariant>(prover_options.elliptic_curve_type, curves_wrapper_void);
     return ret;

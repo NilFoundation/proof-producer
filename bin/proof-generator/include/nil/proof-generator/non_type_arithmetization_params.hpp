@@ -22,23 +22,6 @@
 namespace nil {
     namespace proof_generator {
 
-        struct ColumnsParams {
-            std::size_t witness_columns;
-            std::size_t public_input_columns;
-            std::size_t component_constant_columns;
-            std::size_t component_selector_columns;
-            std::size_t lookup_constant_columns;
-            std::size_t lookup_selector_columns;
-
-            bool operator==(const ColumnsParams& other) const {
-                return witness_columns == other.witness_columns && public_input_columns == other.public_input_columns
-                    && component_constant_columns == other.component_constant_columns
-                    && component_selector_columns == other.component_selector_columns
-                    && lookup_constant_columns == other.lookup_constant_columns
-                    && lookup_selector_columns == other.lookup_selector_columns;
-            }
-        };
-
         // Need this class to be derived into actual params, so we could overload
         // read/write operators for parsing.
         class SizeTParam {
