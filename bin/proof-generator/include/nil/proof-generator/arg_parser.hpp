@@ -33,7 +33,7 @@ namespace nil {
         using HashesVariant =
             typename tuple_to_variant<typename transform_tuple<HashTypes, to_type_identity>::type>::type;
 
-        struct prover_options {
+        struct ProverOptions {
             boost::filesystem::path proof_file_path = "proof.bin";
             boost::filesystem::path preprocessed_common_data_path = "preprocessed_common_data.dat";
             boost::filesystem::path circuit_file_path;
@@ -41,15 +41,15 @@ namespace nil {
             boost::log::trivial::severity_level log_level = boost::log::trivial::severity_level::info;
             bool skip_verification = false;
             bool verification_only = false;
-            CurvesVariant elliptic_curve_type = type_identity<nil::crypto3::algebra::curves::pallas> {};
-            HashesVariant hash_type = type_identity<nil::crypto3::hashes::keccak_1600<256>> {};
-            columns_params columns = all_columns_params[0];
-            lambda_param lambda = all_lambda_params[0];
-            grind_param grind = all_grind_params[0];
+            CurvesVariant elliptic_curve_type = type_identity<nil::crypto3::algebra::curves::pallas>{};
+            HashesVariant hash_type = type_identity<nil::crypto3::hashes::keccak_1600<256>>{};
+            ColumnsParams columns = all_columns_params[0];
+            LambdaParam lambda = all_lambda_params[0];
+            GrindParam grind = all_grind_params[0];
             std::size_t expand_factor = 2;
         };
 
-        std::optional<prover_options> parse_args(int argc, char* argv[]);
+        std::optional<ProverOptions> parse_args(int argc, char* argv[]);
 
     } // namespace proof_generator
 } // namespace nil

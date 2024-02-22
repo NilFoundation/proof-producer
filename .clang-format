@@ -1,5 +1,6 @@
 ---
-BasedOnStyle: WebKit
+BasedOnStyle: Google
+AccessModifierOffset: -4 # To keep them at the same column as `class`
 AlignAfterOpenBracket: BlockIndent
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
@@ -68,6 +69,7 @@ IncludeCategories:
         Priority:        4
     -   Regex:           '.*'
         Priority:        5
+IndentAccessModifiers: false
 IndentCaseLabels: true
 IndentPPDirectives: None
 IndentWidth: 4
