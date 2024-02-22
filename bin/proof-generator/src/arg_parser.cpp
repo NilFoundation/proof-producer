@@ -29,20 +29,6 @@ namespace nil {
     namespace proof_generator {
         namespace po = boost::program_options;
 
-        void print_all_columns_params() {
-            std::cout << "Available Policies:\n";
-            std::cout << "Index: witness, public input, component constant, component "
-                         "selector, lookup constant, "
-                         "lookup selector\n";
-
-            for (std::size_t i = 0; i < all_columns_params.size(); ++i) {
-                const auto& params = all_columns_params[i];
-                std::cout << std::setw(5) << i << ":\t" << params.witness_columns << "," << params.public_input_columns
-                          << "," << params.component_constant_columns << "," << params.component_selector_columns << ","
-                          << params.lookup_constant_columns << "," << params.lookup_selector_columns << "\n";
-            }
-        }
-
         void check_exclusive_options(const po::variables_map& vm, const std::vector<std::string>& opts) {
             std::vector<std::string> found_opts;
             for (const auto& opt : opts) {
@@ -55,6 +41,11 @@ namespace nil {
             }
         }
 
+        template<typename T>
+        po::typed_value<T>* make_defaulted_option(T& variable) {
+            return po::value(&variable)->default_value(variable);
+        }
+
         std::optional<ProverOptions> parse_args(int argc, char* argv[]) {
             po::options_description options("Nil; Proof Generator Options");
             // Declare a group of options that will be
@@ -64,8 +55,7 @@ namespace nil {
             generic.add_options()
                 ("help,h", "Produce help message")
                 ("version,v", "Print version string")
-                ("config,c", po::value<std::string>(), "Config file path")
-                ("list-columns-params", "Print available columns params");
+                ("config,c", po::value<std::string>(), "Config file path");
             // clang-format on
 
             ProverOptions prover_options;
@@ -80,17 +70,17 @@ namespace nil {
             );
             // clang-format off
             auto options_appender = config.add_options()
-                ("proof,p", po::value(&prover_options.proof_file_path)->default_value(prover_options.proof_file_path), "Output proof file")
-                ("common-data", po::value(&prover_options.preprocessed_common_data_path)->default_value(prover_options.preprocessed_common_data_path), "Output preprocessed common data file")
+                ("proof,p", make_defaulted_option(prover_options.proof_file_path), "Output proof file")
+                ("common-data", make_defaulted_option(prover_options.preprocessed_common_data_path), "Output preprocessed common data file")
                 ("circuit,c", po::value(&prover_options.circuit_file_path)->required(), "Circuit input file")
                 ("assignment-table,t", po::value(&prover_options.assignment_table_file_path)->required(), "Assignment table input file")
-                ("log-level,l", po::value(&prover_options.log_level)->default_value(prover_options.log_level), "Log level (trace, debug, info, warning, error, fatal)")
-                ("elliptic-curve-type,e", po::value(&prover_options.elliptic_curve_type)->default_value(prover_options.elliptic_curve_type), "Elliptic curve type (pallas)")
-                ("hash-type", po::value(&prover_options.hash_type)->default_value(prover_options.hash_type), "Hash type (keccak)")
-                ("columns-params", po::value(&prover_options.columns)->default_value(prover_options.columns), "Columns params, use --list-columns-params to list")
-                ("lambda-param", po::value(&prover_options.lambda)->default_value(prover_options.lambda), "Lambda param (9)")
-                ("grind-param", po::value(&prover_options.lambda)->default_value(prover_options.lambda), "Grind param (69)")
-                ("expand-factor", po::value(&prover_options.expand_factor)->default_value(prover_options.expand_factor), "Expand factor")
+                ("log-level,l", make_defaulted_option(prover_options.log_level), "Log level (trace, debug, info, warning, error, fatal)")
+                ("elliptic-curve-type,e", make_defaulted_option(prover_options.elliptic_curve_type), "Elliptic curve type (pallas)")
+                ("hash-type", make_defaulted_option(prover_options.hash_type), "Hash type (keccak)")
+                ("lambda-param", make_defaulted_option(prover_options.lambda), "Lambda param (9)")
+                ("grind-param", make_defaulted_option(prover_options.grind), "Grind param (69)")
+                ("expand-factor", make_defaulted_option(prover_options.expand_factor), "Expand factor")
+                ("component-constant-columns", make_defaulted_option(prover_options.component_constant_columns), "Component constant columns")
                 ("skip-verification", po::bool_switch(&prover_options.skip_verification), "Skip generated proof verifying step")
                 ("verification-only", po::bool_switch(&prover_options.verification_only), "Read proof for verification instead of writing to it");
             // clang-format on
@@ -134,11 +124,6 @@ namespace nil {
                 }
             }
 
-            if (vm.count("list-columns-params")) {
-                print_all_columns_params();
-                return std::nullopt;
-            }
-
             // Calling notify(vm) after handling no-op cases prevent parser from alarming
             // about absence of required args
             try {
@@ -162,25 +147,6 @@ namespace nil {
 
         // >> and << operators are needed for Boost porgram_options to read values and
         // to print default values to help message: The rest of the file contains them:
-
-        std::ostream& operator<<(std::ostream& strm, const ColumnsParams& columns) {
-            auto it = std::find(all_columns_params.cbegin(), all_columns_params.cend(), columns);
-            strm << std::distance(all_columns_params.cbegin(), it);
-            return strm;
-        }
-
-        std::istream& operator>>(std::istream& strm, ColumnsParams& columns) {
-            std::string str;
-            strm >> str;
-            std::size_t pos;
-            int idx = std::stoi(str, &pos);
-            if (pos < str.size() || idx < 0 || static_cast<std::size_t>(idx) >= all_columns_params.size()) {
-                strm.setstate(std::ios_base::failbit);
-            } else {
-                columns = all_columns_params[idx];
-            }
-            return strm;
-        }
 
         std::ostream& operator<<(std::ostream& strm, const LambdaParam& lambda) {
             strm << static_cast<size_t>(lambda);
