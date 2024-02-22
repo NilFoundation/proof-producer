@@ -36,7 +36,7 @@ template<
     std::size_t LambdaParamIdx,
     typename HashType,
     std::size_t GridParamIdx>
-int run_prover(const nil::proof_generator::prover_options& prover_options) {
+int run_prover(const nil::proof_generator::ProverOptions& prover_options) {
     auto prover_task = [&] {
         auto prover = nil::proof_generator::Prover<CurveType, HashType, ColumnsParamsIdx, LambdaParamIdx, GridParamIdx>(
             prover_options.circuit_file_path,
@@ -63,7 +63,7 @@ int run_prover(const nil::proof_generator::prover_options& prover_options) {
 // but this would lead to callback hell. Instead, we declare extra function for
 // each factor. Last declared function starts the chain.
 template<typename CurveType, std::size_t ColumnsParamsIdx, std::size_t LambdaParamIdx, typename HashType>
-int grind_param_wrapper(const prover_options& prover_options) {
+int grind_param_wrapper(const ProverOptions& prover_options) {
     int ret;
     auto run_prover_void = [&prover_options, &ret]<std::size_t GrindParamIdx>() {
         ret = run_prover<CurveType, ColumnsParamsIdx, LambdaParamIdx, HashType, GrindParamIdx>(prover_options);
@@ -73,7 +73,7 @@ int grind_param_wrapper(const prover_options& prover_options) {
 }
 
 template<typename CurveType, std::size_t ColumnsParamsIdx, std::size_t LambdaParamIdx>
-int hash_wrapper(const prover_options& prover_options) {
+int hash_wrapper(const ProverOptions& prover_options) {
     int ret;
     auto run_prover_wrapper = [&prover_options, &ret]<typename HashTypeIdentity>() {
         using HashType = typename HashTypeIdentity::type;
@@ -84,7 +84,7 @@ int hash_wrapper(const prover_options& prover_options) {
 }
 
 template<typename CurveType, std::size_t ColumnsParamsIdx>
-int lambda_param_wrapper(const prover_options& prover_options) {
+int lambda_param_wrapper(const ProverOptions& prover_options) {
     int ret;
     auto hash_wrapper_void = [&prover_options, &ret]<std::size_t LambdaParamIdx>() {
         ret = hash_wrapper<CurveType, ColumnsParamsIdx, LambdaParamIdx>(prover_options);
@@ -94,7 +94,7 @@ int lambda_param_wrapper(const prover_options& prover_options) {
 }
 
 template<typename CurveType>
-int columns_params_wrapper(const prover_options& prover_options) {
+int columns_params_wrapper(const ProverOptions& prover_options) {
     int ret;
     auto columns_params_wrapper_void = [&prover_options, &ret]<std::size_t ColumnsParamsIdx>() {
         ret = lambda_param_wrapper<CurveType, ColumnsParamsIdx>(prover_options);
@@ -106,7 +106,7 @@ int columns_params_wrapper(const prover_options& prover_options) {
     return ret;
 }
 
-int curve_wrapper(const prover_options& prover_options) {
+int curve_wrapper(const ProverOptions& prover_options) {
     int ret;
     auto curves_wrapper_void = [&prover_options, &ret]<typename CurveTypeIdentity>() {
         using CurveType = typename CurveTypeIdentity::type;
@@ -116,12 +116,12 @@ int curve_wrapper(const prover_options& prover_options) {
     return ret;
 }
 
-int initial_wrapper(const prover_options& prover_options) {
+int initial_wrapper(const ProverOptions& prover_options) {
     return curve_wrapper(prover_options);
 }
 
 int main(int argc, char* argv[]) {
-    std::optional<nil::proof_generator::prover_options> prover_options = nil::proof_generator::parse_args(argc, argv);
+    std::optional<nil::proof_generator::ProverOptions> prover_options = nil::proof_generator::parse_args(argc, argv);
     if (!prover_options) {
         // Action has already taken a place (help, version, etc.)
         return 0;

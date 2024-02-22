@@ -55,7 +55,7 @@ namespace nil {
             }
         }
 
-        std::optional<prover_options> parse_args(int argc, char* argv[]) {
+        std::optional<ProverOptions> parse_args(int argc, char* argv[]) {
             po::options_description options("Nil; Proof Generator Options");
             // Declare a group of options that will be
             // allowed only on command line
@@ -68,7 +68,7 @@ namespace nil {
                 ("list-columns-params", "Print available columns params");
             // clang-format on
 
-            prover_options prover_options;
+            ProverOptions prover_options;
 
             // Declare a group of options that will be
             // allowed both on command line and in
@@ -163,13 +163,13 @@ namespace nil {
         // >> and << operators are needed for Boost porgram_options to read values and
         // to print default values to help message: The rest of the file contains them:
 
-        std::ostream& operator<<(std::ostream& strm, const columns_params& columns) {
+        std::ostream& operator<<(std::ostream& strm, const ColumnsParams& columns) {
             auto it = std::find(all_columns_params.cbegin(), all_columns_params.cend(), columns);
             strm << std::distance(all_columns_params.cbegin(), it);
             return strm;
         }
 
-        std::istream& operator>>(std::istream& strm, columns_params& columns) {
+        std::istream& operator>>(std::istream& strm, ColumnsParams& columns) {
             std::string str;
             strm >> str;
             std::size_t pos;
@@ -182,12 +182,12 @@ namespace nil {
             return strm;
         }
 
-        std::ostream& operator<<(std::ostream& strm, const lambda_param& lambda) {
+        std::ostream& operator<<(std::ostream& strm, const LambdaParam& lambda) {
             strm << static_cast<size_t>(lambda);
             return strm;
         }
 
-        std::istream& operator>>(std::istream& strm, lambda_param& lambda) {
+        std::istream& operator>>(std::istream& strm, LambdaParam& lambda) {
             std::string str;
             strm >> str;
             std::size_t pos;
@@ -196,7 +196,7 @@ namespace nil {
                 strm.setstate(std::ios_base::failbit);
             } else {
                 auto it =
-                    std::find(all_lambda_params.cbegin(), all_lambda_params.cend(), static_cast<lambda_param>(val));
+                    std::find(all_lambda_params.cbegin(), all_lambda_params.cend(), static_cast<LambdaParam>(val));
                 if (it != all_lambda_params.cend()) {
                     lambda = val;
                 } else {
@@ -206,12 +206,12 @@ namespace nil {
             return strm;
         }
 
-        std::ostream& operator<<(std::ostream& strm, const grind_param& grind) {
+        std::ostream& operator<<(std::ostream& strm, const GrindParam& grind) {
             strm << static_cast<size_t>(grind);
             return strm;
         }
 
-        std::istream& operator>>(std::istream& strm, grind_param& grind) {
+        std::istream& operator>>(std::istream& strm, GrindParam& grind) {
             std::string str;
             strm >> str;
             std::size_t pos;
@@ -219,7 +219,7 @@ namespace nil {
             if (pos < str.size() || val < 0) {
                 strm.setstate(std::ios_base::failbit);
             } else {
-                auto it = std::find(all_grind_params.cbegin(), all_grind_params.cend(), static_cast<grind_param>(val));
+                auto it = std::find(all_grind_params.cbegin(), all_grind_params.cend(), static_cast<GrindParam>(val));
                 if (it != all_grind_params.cend()) {
                     grind = val;
                 } else {
@@ -253,17 +253,17 @@ namespace nil {
     std::istream& operator>>(std::istream& strm, VARIANT_TYPE& variant) { \
         std::string str;                                                  \
         strm >> str;                                                      \
-        auto l = [&str, &strm]() {                                        \
+        auto l = [&str, &strm]() -> VARIANT_TYPE {                        \
             STRING_TO_TYPE_LINES                                          \
             strm.setstate(std::ios_base::failbit);                        \
-            return std::variant_alternative_t<0, VARIANT_TYPE>();         \
+            return VARIANT_TYPE();                                        \
         };                                                                \
         variant = l();                                                    \
         return strm;                                                      \
     }
 #define STRING_TO_TYPE(TYPE, NAME) \
     if (NAME == str)               \
-        return type_identity<TYPE> {};
+        return type_identity<TYPE>{};
 
 #define CURVE_TYPES X(nil::crypto3::algebra::curves::pallas, "pallas")
 #define X(type, name) TYPE_TO_STRING(type, name)
