@@ -44,10 +44,11 @@ namespace nil {
             bool verification_only = false;
             CurvesVariant elliptic_curve_type = type_identity<nil::crypto3::algebra::curves::pallas>{};
             HashesVariant hash_type = type_identity<nil::crypto3::hashes::keccak_1600<256>>{};
-            LambdaParam lambda = all_lambda_params[0];
-            GrindParam grind = all_grind_params[0];
-            std::size_t component_constant_columns = 5;
+
+            std::size_t lambda = 9;
+            std::size_t grind = 69;
             std::size_t expand_factor = 2;
+            std::size_t max_quotient_chunks = 0;
         };
 
         std::optional<ProverOptions> parse_args(int argc, char* argv[]);

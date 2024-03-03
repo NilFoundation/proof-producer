@@ -28,6 +28,8 @@
 #include <boost/test/unit_test.hpp> // TODO: remove this. Required only because of an incorrect assert check in zk
 
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
+#include <nil/crypto3/marshalling/zk/types/commitments/eval_storage.hpp>
+#include <nil/crypto3/marshalling/zk/types/commitments/lpc.hpp>
 #include <nil/crypto3/marshalling/zk/types/placeholder/common_data.hpp>
 #include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
 #include <nil/crypto3/marshalling/zk/types/plonk/assignment_table.hpp>
@@ -39,10 +41,10 @@
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/params.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/preprocessor.hpp>
-#include <nil/crypto3/zk/snark/systems/plonk/placeholder/profiling.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/proof.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/profiling.hpp>
 
 #include <nil/blueprint/transpiler/recursive_verifier_generator.hpp>
 #include <nil/marshalling/endianness.hpp>
@@ -113,25 +115,9 @@ namespace nil {
                 }
                 return step_list;
             }
-
-            template<typename FRIScheme, typename FieldType>
-            typename FRIScheme::params_type create_fri_params(
-                std::size_t degree_log,
-                const int max_step = 1,
-                std::size_t expand_factor = 0
-            ) {
-                std::size_t r = degree_log - 1;
-
-                return typename FRIScheme::params_type(
-                    (1 << degree_log) - 1, // max_degree
-                    nil::crypto3::math::calculate_domain_set<FieldType>(degree_log + expand_factor, r),
-                    generate_random_step_list(r, max_step),
-                    expand_factor
-                );
-            }
         } // namespace detail
 
-        template<typename CurveType, typename HashType, std::size_t LambdaParamIdx, std::size_t GrindParamIdx>
+        template<typename CurveType, typename HashType>
         class Prover {
         public:
             Prover(
@@ -140,17 +126,20 @@ namespace nil {
                 boost::filesystem::path assignment_table_file_name,
                 boost::filesystem::path proof_file,
                 boost::filesystem::path json_file,
-                std::size_t component_constant_columns, // We need it to calculate permutation size, and it couldn't be
-                                                        // established form assignment table yet
-                std::size_t expand_factor
+                std::size_t lambda,
+                std::size_t expand_factor,
+                std::size_t max_q_chunks,
+                std::size_t grind
             )
                 : circuit_file_(circuit_file_name)
                 , preprocessed_common_data_file_(preprocessed_common_data_file_name)
                 , assignment_table_file_(assignment_table_file_name)
                 , proof_file_(proof_file)
                 , json_file_(json_file)
-                , component_constant_columns_(component_constant_columns)
-                , expand_factor_(expand_factor) {
+                , lambda_(lambda)
+                , expand_factor_(expand_factor)
+                , max_quotient_chunks_(max_q_chunks)
+                , grind_(grind) {
             }
 
             bool generate_to_file(bool skip_verification) {
@@ -256,8 +245,7 @@ namespace nil {
 
         private:
             using BlueprintField = typename CurveType::base_field_type;
-            using LpcParams = nil::crypto3::zk::commitments::
-                list_polynomial_commitment_params<HashType, HashType, all_lambda_params[LambdaParamIdx], 2>;
+            using LpcParams = nil::crypto3::zk::commitments::list_polynomial_commitment_params<HashType, HashType, 2>;
             using Lpc = nil::crypto3::zk::commitments::list_polynomial_commitment<BlueprintField, LpcParams>;
             using LpcScheme = typename nil::crypto3::zk::commitments::lpc_commitment_scheme<Lpc>;
             using CircuitParams = nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintField>;
@@ -278,7 +266,7 @@ namespace nil {
                 BOOST_LOG_TRIVIAL(info) << "Verifying proof...";
                 bool verification_result =
                     nil::crypto3::zk::snark::placeholder_verifier<BlueprintField, PlaceholderParams>::process(
-                        *public_preprocessed_data_,
+                        public_preprocessed_data_->common_data,
                         proof,
                         *table_description_,
                         *constraint_system_,
@@ -299,6 +287,7 @@ namespace nil {
                 using TTypeBase = nil::marshalling::field_type<Endianness>;
                 using ConstraintMarshalling =
                     nil::crypto3::marshalling::types::plonk_constraint_system<TTypeBase, ConstraintSystem>;
+
                 {
                     auto marshalled_value = detail::decode_marshalling_from_file<ConstraintMarshalling>(circuit_file_);
                     if (!marshalled_value) {
@@ -322,18 +311,14 @@ namespace nil {
                     nil::crypto3::marshalling::types::make_assignment_table<Endianness, AssignmentTable>(
                         *marshalled_table
                     );
-                public_inputs_ = assignment_table.public_inputs();
+
+                public_inputs_.emplace(assignment_table.public_inputs());
                 table_description_.emplace(table_description);
 
                 // Lambdas and grinding bits should be passed threw preprocessor directives
                 std::size_t table_rows_log = std::ceil(std::log2(table_description_->rows_amount));
 
-                fri_params_.emplace(
-                    detail::create_fri_params<typename Lpc::fri_type, BlueprintField>(table_rows_log, 1, expand_factor_)
-                );
-
-                std::size_t permutation_size = table_description_->witness_columns
-                    + table_description_->public_input_columns + component_constant_columns_;
+                fri_params_.emplace(FriParams(1, table_rows_log, lambda_, expand_factor_));
                 lpc_scheme_.emplace(*fri_params_);
 
                 BOOST_LOG_TRIVIAL(info) << "Preprocessing public data";
@@ -344,7 +329,7 @@ namespace nil {
                             assignment_table.move_public_table(),
                             *table_description_,
                             *lpc_scheme_,
-                            permutation_size
+                            max_quotient_chunks_
                         )
                 );
 
@@ -362,7 +347,9 @@ namespace nil {
             const boost::filesystem::path proof_file_;
             const boost::filesystem::path json_file_;
             const std::size_t expand_factor_;
-            const std::size_t component_constant_columns_;
+            const std::size_t max_quotient_chunks_;
+            const std::size_t lambda_;
+            const std::size_t grind_;
 
             // All set on prepare_for_operation()
             std::optional<PublicPreprocessedData> public_preprocessed_data_;
