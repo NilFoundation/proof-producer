@@ -21,7 +21,11 @@
 #include <tuple>
 
 #include <nil/crypto3/algebra/curves/pallas.hpp>
+#include <nil/crypto3/algebra/curves/vesta.hpp>
+
 #include <nil/crypto3/hash/keccak.hpp>
+#include <nil/crypto3/hash/poseidon.hpp>
+#include <nil/crypto3/hash/sha2.hpp>
 
 #include <nil/proof-generator/non_type_arithmetization_params.hpp>
 
@@ -49,13 +53,17 @@ namespace nil {
             // Add more params as needed.
         };
 
-        using CurveTypes = std::tuple<nil::crypto3::algebra::curves::pallas
-                                      // Add more curves as needed.
-                                      >;
+        using CurveTypes = std::tuple<
+            nil::crypto3::algebra::curves::pallas
+            // Add more curves as needed.
+        >;
 
-        using HashTypes = std::tuple<nil::crypto3::hashes::keccak_1600<256>
-                                     // Add more hashes as needed.
-                                     >;
+        using HashTypes = std::tuple<
+            nil::crypto3::hashes::keccak_1600<256>,
+            nil::crypto3::hashes::sha2<256>,
+            nil::crypto3::hashes::poseidon<nil::crypto3::hashes::detail::mina_poseidon_policy<nil::crypto3::algebra::curves::pallas::base_field_type>>
+            // Add more hashes as needed.
+        >;
 
     } // namespace proof_generator
 } // namespace nil
