@@ -252,15 +252,13 @@ namespace nil {
             static constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
             // clang-format on
 
-            using ArithmetizationParams = nil::crypto3::zk::snark::
-                plonk_arithmetization_params<WitnessColumns, PublicInputColumns, ConstantColumns, SelectorColumns>;
             using BlueprintField = typename CurveType::base_field_type;
             using LpcParams = nil::crypto3::zk::commitments::
                 list_polynomial_commitment_params<HashType, HashType, all_lambda_params[LambdaParamIdx], 2>;
             using Lpc = nil::crypto3::zk::commitments::list_polynomial_commitment<BlueprintField, LpcParams>;
             using LpcScheme = typename nil::crypto3::zk::commitments::lpc_commitment_scheme<Lpc>;
             using CircuitParams =
-                nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintField, ArithmetizationParams>;
+                nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintField>;
             using PlaceholderParams = nil::crypto3::zk::snark::placeholder_params<CircuitParams, LpcScheme>;
             using Proof = nil::crypto3::zk::snark::placeholder_proof<BlueprintField, PlaceholderParams>;
             using PublicPreprocessedData = typename nil::crypto3::zk::snark::
@@ -268,9 +266,9 @@ namespace nil {
             using PrivatePreprocessedData = typename nil::crypto3::zk::snark::
                 placeholder_private_preprocessor<BlueprintField, PlaceholderParams>::preprocessed_data_type;
             using ConstraintSystem =
-                nil::crypto3::zk::snark::plonk_constraint_system<BlueprintField, ArithmetizationParams>;
+                nil::crypto3::zk::snark::plonk_constraint_system<BlueprintField>;
             using TableDescription =
-                nil::crypto3::zk::snark::plonk_table_description<BlueprintField, ArithmetizationParams>;
+                nil::crypto3::zk::snark::plonk_table_description<BlueprintField>;
             using Endianness = nil::marshalling::option::big_endian;
             using FriParams = typename Lpc::fri_type::params_type;
 
@@ -280,6 +278,7 @@ namespace nil {
                     nil::crypto3::zk::snark::placeholder_verifier<BlueprintField, PlaceholderParams>::process(
                         *public_preprocessed_data_,
                         proof,
+                        *table_description_,
                         *constraint_system_,
                         *lpc_scheme_
                     );
@@ -301,7 +300,7 @@ namespace nil {
 
                 using Column = nil::crypto3::zk::snark::plonk_column<BlueprintField>;
                 using AssignmentTable =
-                    nil::crypto3::zk::snark::plonk_table<BlueprintField, ArithmetizationParams, Column>;
+                    nil::crypto3::zk::snark::plonk_table<BlueprintField, Column>;
 
                 {
                     auto marshalled_value = detail::decode_marshalling_from_file<ConstraintMarshalling>(circuit_file_);
@@ -317,21 +316,16 @@ namespace nil {
 
                 using TableValueMarshalling =
                     nil::crypto3::marshalling::types::plonk_assignment_table<TTypeBase, AssignmentTable>;
-                AssignmentTable assignment_table;
-                {
-                    TableDescription table_description;
-                    auto marshalled_table =
-                        detail::decode_marshalling_from_file<TableValueMarshalling>(assignment_table_file_);
-                    if (!marshalled_table) {
-                        return false;
-                    }
-                    std::tie(table_description.usable_rows_amount, assignment_table) =
-                        nil::crypto3::marshalling::types::make_assignment_table<Endianness, AssignmentTable>(
-                            *marshalled_table
-                        );
-                    table_description.rows_amount = assignment_table.rows_amount();
-                    table_description_.emplace(table_description);
+                auto marshalled_table =
+                    detail::decode_marshalling_from_file<TableValueMarshalling>(assignment_table_file_);
+                if (!marshalled_table) {
+                    return false;
                 }
+                auto [table_description, assignment_table] =
+                    nil::crypto3::marshalling::types::make_assignment_table<Endianness, AssignmentTable>(
+                        *marshalled_table
+                    );
+                table_description_ = table_description;
 
                 // Lambdas and grinding bits should be passed threw preprocessor directives
                 std::size_t table_rows_log = std::ceil(std::log2(table_description_->rows_amount));

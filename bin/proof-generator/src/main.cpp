@@ -74,6 +74,7 @@ int grind_param_wrapper(const prover_options& prover_options) {
 
 template<typename CurveType, std::size_t ColumnsParamsIdx, std::size_t LambdaParamIdx>
 int hash_wrapper(const prover_options& prover_options) {
+    std::cout << "Hash wrapper" << std::endl;
     int ret;
     auto run_prover_wrapper = [&prover_options, &ret]<typename HashTypeIdentity>() {
         using HashType = typename HashTypeIdentity::type;
@@ -122,6 +123,7 @@ int initial_wrapper(const prover_options& prover_options) {
 
 int main(int argc, char* argv[]) {
     std::optional<nil::proof_generator::prover_options> prover_options = nil::proof_generator::parse_args(argc, argv);
+    std::cout << prover_options->circuit_file_path << std::endl;
     if (!prover_options) {
         // Action has already taken a place (help, version, etc.)
         return 0;
