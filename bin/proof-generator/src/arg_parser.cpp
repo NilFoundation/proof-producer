@@ -253,10 +253,10 @@ namespace nil {
     std::istream& operator>>(std::istream& strm, VARIANT_TYPE& variant) { \
         std::string str;                                                  \
         strm >> str;                                                      \
-        auto l = [&str, &strm]() {                                        \
+        auto l = [&str, &strm]() -> VARIANT_TYPE {                                        \
             STRING_TO_TYPE_LINES                                          \
             strm.setstate(std::ios_base::failbit);                        \
-            return std::variant_alternative_t<0, VARIANT_TYPE>();         \
+            return VARIANT_TYPE();         \
         };                                                                \
         variant = l();                                                    \
         return strm;                                                      \
@@ -273,39 +273,18 @@ namespace nil {
         GENERATE_READ_OPERATOR(CURVE_TYPES, CurvesVariant)
 #undef X
 
-std::ostream& operator<<(std::ostream& strm, const HashesVariant& variant) {
-    strm << std::visit(
-        [&strm](auto&& arg) -> std::string {
-            using SelectedType = std::decay_t<decltype(arg)>;
-            if constexpr (std::is_same_v<SelectedType, type_identity<nil::crypto3::hashes::keccak_1600<256>>>) return "keccak";
-            if constexpr (std::is_same_v<SelectedType, type_identity<nil::crypto3::hashes::sha2<256>>>) return "sha2";
-            if constexpr (std::is_same_v<SelectedType, type_identity<nil::crypto3::hashes::poseidon<nil::crypto3::hashes::detail::mina_poseidon_policy<nil::crypto3::algebra::curves::pallas::base_field_type>>>>) return "sha2";
-            strm.setstate(std::ios_base::failbit);
-            return "";
-        },
-        variant
-    );
-    return strm;
-}
 
-std::istream& operator>>(std::istream& strm, HashesVariant& variant) {
-    std::string str;
-    strm >> str;
-    if(str == "keccak") {
-        variant = std::variant_alternative_t<0, HashesVariant>();
-        return strm;
-    }
-    if(str == "sha2") {
-        variant = std::variant_alternative_t<1, HashesVariant>();
-        return strm;
-    }
-    if(str == "poseidon") {
-        variant = std::variant_alternative_t<2, HashesVariant>();
-        return strm;
-    }
-    strm.setstate(std::ios_base::failbit);
-    return strm;
-}
+#define HASH_TYPES \
+    X(nil::crypto3::hashes::keccak_1600<256>, "keccak") \
+    X(nil::crypto3::hashes::sha2<256>, "sha256") \
+    X(nil::crypto3::hashes::poseidon<nil::crypto3::hashes::detail::mina_poseidon_policy<nil::crypto3::algebra::curves::pallas::base_field_type>>, "poseidon")
+
+#define X(type, name) TYPE_TO_STRING(type, name)
+        GENERATE_WRITE_OPERATOR(HASH_TYPES, HashesVariant)
+#undef X
+#define X(type, name) STRING_TO_TYPE(type, name)
+        GENERATE_READ_OPERATOR(HASH_TYPES, HashesVariant)
+#undef X
 
     } // namespace proof_generator
 } // namespace nil

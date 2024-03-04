@@ -42,7 +42,7 @@ namespace nil {
             bool skip_verification = false;
             bool verification_only = false;
             CurvesVariant elliptic_curve_type = type_identity<nil::crypto3::algebra::curves::pallas> {};
-            HashesVariant hash_type;
+            HashesVariant hash_type = type_identity<nil::crypto3::hashes::keccak_1600<256>> {};;
             columns_params columns = all_columns_params[0];
             lambda_param lambda = all_lambda_params[0];
             grind_param grind = all_grind_params[0];
