@@ -107,7 +107,6 @@ endif()
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/proof-generator")
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/jsonizer")
 
 install(SCRIPT cmake/create-symlinks.cmake)
 
