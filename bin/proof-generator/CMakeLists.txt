@@ -85,10 +85,13 @@ function(setup_proof_generator_target)
         marshalling::crypto3_multiprecision
         marshalling::crypto3_zk
 
+        crypto3::transpiler
+
         Boost::filesystem
         Boost::log
         Boost::program_options
-        Boost::thread)
+        Boost::thread
+    )
 
     if (APPLE OR NOT ${CMAKE_TARGET_ARCHITECTURE} STREQUAL ${CMAKE_HOST_SYSTEM_PROCESSOR})
         set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES

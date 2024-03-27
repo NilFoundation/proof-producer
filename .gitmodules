@@ -25,3 +25,6 @@
 [submodule "libs/actor/container"]
 	path = libs/actor/container
 	url = ../../NilFoundation/actor-containers.git
+[submodule "libs/transpiler"]
+	path = libs/transpiler
+	url = git@github.com:NilFoundation/zkllvm-transpiler.git

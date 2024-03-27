@@ -37,6 +37,7 @@ int run_prover(const nil::proof_generator::ProverOptions& prover_options) {
             prover_options.preprocessed_common_data_path,
             prover_options.assignment_table_file_path,
             prover_options.proof_file_path,
+            prover_options.json_file_path,
             prover_options.component_constant_columns,
             prover_options.expand_factor
         );

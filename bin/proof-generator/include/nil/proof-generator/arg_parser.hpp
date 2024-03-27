@@ -35,6 +35,7 @@ namespace nil {
 
         struct ProverOptions {
             boost::filesystem::path proof_file_path = "proof.bin";
+            boost::filesystem::path json_file_path = "proof.json";
             boost::filesystem::path preprocessed_common_data_path = "preprocessed_common_data.dat";
             boost::filesystem::path circuit_file_path;
             boost::filesystem::path assignment_table_file_path;
