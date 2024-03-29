@@ -32,23 +32,12 @@
 namespace nil {
     namespace proof_generator {
 
-        // Available in runtime columns params. Order is:
-        //   witness | public_input | component_constant | component_selector |
-        //   lookup_constant | lookup_selector
-        constexpr std::array<columns_params, 4> all_columns_params = {{
-            {15, 1, 5, 50, 30, 6},
-            {15, 1, 5, 60, 0, 0},
-            {15, 1, 2, 50, 14, 6},
-            {15, 1, 5, 30, 30, 6}
-            // Add more params as needed.
-        }};
-
-        constexpr std::array<lambda_param, 1> all_lambda_params = {
+        constexpr std::array<LambdaParam, 1> all_lambda_params = {
             20
             // Add more params as needed.
         };
 
-        constexpr std::array<grind_param, 1> all_grind_params = {
+        constexpr std::array<GrindParam, 1> all_grind_params = {
             69
             // Add more params as needed.
         };

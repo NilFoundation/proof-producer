@@ -33,8 +33,9 @@ namespace nil {
         using HashesVariant =
             typename tuple_to_variant<typename transform_tuple<HashTypes, to_type_identity>::type>::type;
 
-        struct prover_options {
+        struct ProverOptions {
             boost::filesystem::path proof_file_path = "proof.bin";
+            boost::filesystem::path json_file_path = "proof.json";
             boost::filesystem::path preprocessed_common_data_path = "preprocessed_common_data.dat";
             boost::filesystem::path circuit_file_path;
             boost::filesystem::path assignment_table_file_path;
@@ -49,7 +50,7 @@ namespace nil {
             std::size_t expand_factor = 2;
         };
 
-        std::optional<prover_options> parse_args(int argc, char* argv[]);
+        std::optional<ProverOptions> parse_args(int argc, char* argv[]);
 
     } // namespace proof_generator
 } // namespace nil

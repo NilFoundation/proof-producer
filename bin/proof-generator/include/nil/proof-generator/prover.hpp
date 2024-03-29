@@ -44,6 +44,7 @@
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
 
+#include <nil/blueprint/transpiler/recursive_verifier_generator.hpp>
 #include <nil/marshalling/endianness.hpp>
 #include <nil/marshalling/field_type.hpp>
 #include <nil/marshalling/status_type.hpp>
@@ -130,12 +131,7 @@ namespace nil {
             }
         } // namespace detail
 
-        template<
-            typename CurveType,
-            typename HashType,
-            std::size_t ColumnsParamsIdx,
-            std::size_t LambdaParamIdx,
-            std::size_t GrindParamIdx>
+        template<typename CurveType, typename HashType, std::size_t LambdaParamIdx, std::size_t GrindParamIdx>
         class Prover {
         public:
             Prover(
@@ -143,12 +139,17 @@ namespace nil {
                 boost::filesystem::path preprocessed_common_data_file_name,
                 boost::filesystem::path assignment_table_file_name,
                 boost::filesystem::path proof_file,
+                boost::filesystem::path json_file,
+                std::size_t component_constant_columns, // We need it to calculate permutation size, and it couldn't be
+                                                        // established form assignment table yet
                 std::size_t expand_factor
             )
                 : circuit_file_(circuit_file_name)
                 , preprocessed_common_data_file_(preprocessed_common_data_file_name)
                 , assignment_table_file_(assignment_table_file_name)
                 , proof_file_(proof_file)
+                , json_file_(json_file)
+                , component_constant_columns_(component_constant_columns)
                 , expand_factor_(expand_factor) {
             }
 
@@ -197,6 +198,22 @@ namespace nil {
                     BOOST_LOG_TRIVIAL(info) << "Proof written";
                 }
 
+                BOOST_LOG_TRIVIAL(info) << "Writing json proof to " << json_file_;
+                auto output_file = open_file<std::ofstream>(json_file_.string(), std::ios_base::out);
+                if (!output_file)
+                    return res;
+
+                (*output_file) << nil::blueprint::recursive_verifier_generator<
+                                      PlaceholderParams,
+                                      nil::crypto3::zk::snark::placeholder_proof<BlueprintField, PlaceholderParams>,
+                                      typename nil::crypto3::zk::snark::placeholder_public_preprocessor<
+                                          BlueprintField,
+                                          PlaceholderParams>::preprocessed_data_type::common_data_type>(
+                                      *table_description_
+                )
+                                      .generate_input(*public_inputs_, proof, constraint_system_->public_input_sizes());
+                output_file->close();
+
                 return res;
             }
 
@@ -238,39 +255,24 @@ namespace nil {
             }
 
         private:
-            // C++20 allows passing non-type template param by value, so we could make the
-            // current function use
-            //   columns_policy type directly instead of index after standard upgrade.
-            // clang-format off
-            static constexpr std::size_t WitnessColumns = all_columns_params[ColumnsParamsIdx].witness_columns;
-            static constexpr std::size_t PublicInputColumns = all_columns_params[ColumnsParamsIdx].public_input_columns;
-            static constexpr std::size_t ComponentConstantColumns = all_columns_params[ColumnsParamsIdx].component_constant_columns;
-            static constexpr std::size_t LookupConstantColumns = all_columns_params[ColumnsParamsIdx].lookup_constant_columns;
-            static constexpr std::size_t ConstantColumns = ComponentConstantColumns + LookupConstantColumns;
-            static constexpr std::size_t ComponentSelectorColumns = all_columns_params[ColumnsParamsIdx].component_selector_columns;
-            static constexpr std::size_t LookupSelectorColumns = all_columns_params[ColumnsParamsIdx].lookup_selector_columns;
-            static constexpr std::size_t SelectorColumns = ComponentSelectorColumns + LookupSelectorColumns;
-            // clang-format on
-
             using BlueprintField = typename CurveType::base_field_type;
             using LpcParams = nil::crypto3::zk::commitments::
                 list_polynomial_commitment_params<HashType, HashType, all_lambda_params[LambdaParamIdx], 2>;
             using Lpc = nil::crypto3::zk::commitments::list_polynomial_commitment<BlueprintField, LpcParams>;
             using LpcScheme = typename nil::crypto3::zk::commitments::lpc_commitment_scheme<Lpc>;
-            using CircuitParams =
-                nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintField>;
+            using CircuitParams = nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintField>;
             using PlaceholderParams = nil::crypto3::zk::snark::placeholder_params<CircuitParams, LpcScheme>;
             using Proof = nil::crypto3::zk::snark::placeholder_proof<BlueprintField, PlaceholderParams>;
             using PublicPreprocessedData = typename nil::crypto3::zk::snark::
                 placeholder_public_preprocessor<BlueprintField, PlaceholderParams>::preprocessed_data_type;
             using PrivatePreprocessedData = typename nil::crypto3::zk::snark::
                 placeholder_private_preprocessor<BlueprintField, PlaceholderParams>::preprocessed_data_type;
-            using ConstraintSystem =
-                nil::crypto3::zk::snark::plonk_constraint_system<BlueprintField>;
-            using TableDescription =
-                nil::crypto3::zk::snark::plonk_table_description<BlueprintField>;
+            using ConstraintSystem = nil::crypto3::zk::snark::plonk_constraint_system<BlueprintField>;
+            using TableDescription = nil::crypto3::zk::snark::plonk_table_description<BlueprintField>;
             using Endianness = nil::marshalling::option::big_endian;
             using FriParams = typename Lpc::fri_type::params_type;
+            using Column = nil::crypto3::zk::snark::plonk_column<BlueprintField>;
+            using AssignmentTable = nil::crypto3::zk::snark::plonk_table<BlueprintField, Column>;
 
             bool verify(const Proof& proof) const {
                 BOOST_LOG_TRIVIAL(info) << "Verifying proof...";
@@ -297,11 +299,6 @@ namespace nil {
                 using TTypeBase = nil::marshalling::field_type<Endianness>;
                 using ConstraintMarshalling =
                     nil::crypto3::marshalling::types::plonk_constraint_system<TTypeBase, ConstraintSystem>;
-
-                using Column = nil::crypto3::zk::snark::plonk_column<BlueprintField>;
-                using AssignmentTable =
-                    nil::crypto3::zk::snark::plonk_table<BlueprintField, Column>;
-
                 {
                     auto marshalled_value = detail::decode_marshalling_from_file<ConstraintMarshalling>(circuit_file_);
                     if (!marshalled_value) {
@@ -325,7 +322,8 @@ namespace nil {
                     nil::crypto3::marshalling::types::make_assignment_table<Endianness, AssignmentTable>(
                         *marshalled_table
                     );
-                table_description_ = table_description;
+                public_inputs_ = assignment_table.public_inputs();
+                table_description_.emplace(table_description);
 
                 // Lambdas and grinding bits should be passed threw preprocessor directives
                 std::size_t table_rows_log = std::ceil(std::log2(table_description_->rows_amount));
@@ -335,7 +333,7 @@ namespace nil {
                 );
 
                 std::size_t permutation_size = table_description_->witness_columns
-                    + table_description_->public_input_columns + ComponentConstantColumns;
+                    + table_description_->public_input_columns + component_constant_columns_;
                 lpc_scheme_.emplace(*fri_params_);
 
                 BOOST_LOG_TRIVIAL(info) << "Preprocessing public data";
@@ -362,11 +360,14 @@ namespace nil {
             const boost::filesystem::path preprocessed_common_data_file_;
             const boost::filesystem::path assignment_table_file_;
             const boost::filesystem::path proof_file_;
+            const boost::filesystem::path json_file_;
             const std::size_t expand_factor_;
+            const std::size_t component_constant_columns_;
 
             // All set on prepare_for_operation()
             std::optional<PublicPreprocessedData> public_preprocessed_data_;
             std::optional<PrivatePreprocessedData> private_preprocessed_data_;
+            std::optional<typename AssignmentTable::public_input_container_type> public_inputs_;
             std::optional<TableDescription> table_description_;
             std::optional<ConstraintSystem> constraint_system_;
             std::optional<FriParams> fri_params_;

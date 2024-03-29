@@ -335,9 +335,9 @@ jobs:
       (needs.handle-syncwith.result == 'success' || needs.handle-syncwith.result == 'skipped') &&
       (needs.build-and-generate-proofs.result == 'success' || needs.build-and-generate-proofs.result == 'skipped') &&
       (needs.prepare-targets.result == 'success' || needs.prepare-targets.result == 'skipped')
-    uses: NilFoundation/evm-placeholder-verification/.github/workflows/reusable-verify-proofs.yml@5bb7c4b0790f56b3a339e33ba442816fac17ab88
+    uses: NilFoundation/evm-placeholder-verification/.github/workflows/reusable-verify-proofs.yml@2a0ef5fc67e97be8e3c7b59338cf9eecd030c57d
     with:
       artifact-name: ${{ needs.build-and-generate-proofs.outputs.artifact-name }}
-      evm-placeholder-verification-ref: 5bb7c4b0790f56b3a339e33ba442816fac17ab88
+      evm-placeholder-verification-ref: 2a0ef5fc67e97be8e3c7b59338cf9eecd030c57d
       refs: ${{ needs.handle-syncwith.outputs.prs-refs }}
       test-names: ${{ needs.prepare-targets.outputs.evm-targets }}

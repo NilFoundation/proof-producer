@@ -59,6 +59,8 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/core" EXCLUDE_FROM_ALL)
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/math" EXCLUDE_FROM_ALL)
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/zk" EXCLUDE_FROM_ALL)
 
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/transpiler" EXCLUDE_FROM_ALL)
+
 if(NOT PROOF_PRODUCER_VERSION)
     find_program(GIT_EXECUTABLE NAMES git PATHS /usr/bin /usr/local/bin)
     message(STATUS "Running command: ${GIT_EXECUTABLE} describe --tags HEAD")
