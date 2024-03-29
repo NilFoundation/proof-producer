@@ -44,7 +44,7 @@ namespace nil {
         }};
 
         constexpr std::array<lambda_param, 1> all_lambda_params = {
-            9
+            20
             // Add more params as needed.
         };
 
