@@ -15,6 +15,7 @@
 //---------------------------------------------------------------------------//
 
 #include "nil/proof-generator/arg_parser.hpp"
+#include "nil/proof-generator/arithmetization_params.hpp"
 
 #include <fstream>
 #include <iomanip>
@@ -77,11 +78,10 @@ namespace nil {
                 ("assignment-table,t", po::value(&prover_options.assignment_table_file_path)->required(), "Assignment table input file")
                 ("log-level,l", make_defaulted_option(prover_options.log_level), "Log level (trace, debug, info, warning, error, fatal)")
                 ("elliptic-curve-type,e", make_defaulted_option(prover_options.elliptic_curve_type), "Elliptic curve type (pallas)")
-                ("hash-type", make_defaulted_option(prover_options.hash_type), "Hash type (keccak, poseidon)")
+                ("hash-type", make_defaulted_option(prover_options.hash_type), "Hash type (keccak, poseidon, sha256)")
                 ("lambda-param", make_defaulted_option(prover_options.lambda), "Lambda param (9)")
                 ("grind-param", make_defaulted_option(prover_options.grind), "Grind param (69)")
                 ("expand-factor,x", make_defaulted_option(prover_options.expand_factor), "Expand factor")
-                ("component-constant-columns", make_defaulted_option(prover_options.component_constant_columns), "Component constant columns")
                 ("skip-verification", po::bool_switch(&prover_options.skip_verification), "Skip generated proof verifying step")
                 ("verification-only", po::bool_switch(&prover_options.verification_only), "Read proof for verification instead of writing to it");
             // clang-format on
@@ -146,56 +146,6 @@ namespace nil {
             return prover_options;
         }
 
-        // >> and << operators are needed for Boost porgram_options to read values and
-        // to print default values to help message: The rest of the file contains them:
-
-        std::ostream& operator<<(std::ostream& strm, const LambdaParam& lambda) {
-            strm << static_cast<size_t>(lambda);
-            return strm;
-        }
-
-        std::istream& operator>>(std::istream& strm, LambdaParam& lambda) {
-            std::string str;
-            strm >> str;
-            std::size_t pos;
-            int val = std::stoi(str, &pos);
-            if (pos < str.size() || val < 0) {
-                strm.setstate(std::ios_base::failbit);
-            } else {
-                auto it =
-                    std::find(all_lambda_params.cbegin(), all_lambda_params.cend(), static_cast<LambdaParam>(val));
-                if (it != all_lambda_params.cend()) {
-                    lambda = val;
-                } else {
-                    strm.setstate(std::ios_base::failbit);
-                }
-            }
-            return strm;
-        }
-
-        std::ostream& operator<<(std::ostream& strm, const GrindParam& grind) {
-            strm << static_cast<size_t>(grind);
-            return strm;
-        }
-
-        std::istream& operator>>(std::istream& strm, GrindParam& grind) {
-            std::string str;
-            strm >> str;
-            std::size_t pos;
-            int val = std::stoi(str, &pos);
-            if (pos < str.size() || val < 0) {
-                strm.setstate(std::ios_base::failbit);
-            } else {
-                auto it = std::find(all_grind_params.cbegin(), all_grind_params.cend(), static_cast<GrindParam>(val));
-                if (it != all_grind_params.cend()) {
-                    grind = val;
-                } else {
-                    strm.setstate(std::ios_base::failbit);
-                }
-            }
-            return strm;
-        }
-
 // Here we have generators of read and write operators for options holding
 // types. Don't forget to adjust help message when add new type - name mapping.
 // Examples below.
@@ -244,8 +194,8 @@ namespace nil {
     X(nil::crypto3::hashes::keccak_1600<256>, "keccak")                                  \
     X(nil::crypto3::hashes::poseidon<nil::crypto3::hashes::detail::mina_poseidon_policy< \
           typename nil::crypto3::algebra::curves::pallas::base_field_type>>,             \
-      "poseidon")
-    X(nil::crypto3::hashes::sha2<256>, "sha256") \
+      "poseidon")                                                                        \
+    X(nil::crypto3::hashes::sha2<256>, "sha256")
 #define X(type, name) TYPE_TO_STRING(type, name)
         GENERATE_WRITE_OPERATOR(HASH_TYPES, HashesVariant)
 #undef X

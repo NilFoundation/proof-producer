@@ -32,16 +32,6 @@
 namespace nil {
     namespace proof_generator {
 
-        constexpr std::array<LambdaParam, 1> all_lambda_params = {
-            20
-            // Add more params as needed.
-        };
-
-        constexpr std::array<GrindParam, 1> all_grind_params = {
-            69
-            // Add more params as needed.
-        };
-
         using CurveTypes = std::tuple<
             nil::crypto3::algebra::curves::pallas
             // Add more curves as needed.
