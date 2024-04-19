@@ -37,9 +37,9 @@
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/profiling.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/params.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/preprocessor.hpp>
-#include <nil/crypto3/zk/snark/systems/plonk/placeholder/profiling.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/proof.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
@@ -117,6 +117,7 @@ namespace nil {
             template<typename FRIScheme, typename FieldType>
             typename FRIScheme::params_type create_fri_params(
                 std::size_t degree_log,
+                std::size_t lambda,
                 const int max_step = 1,
                 std::size_t expand_factor = 0
             ) {
@@ -126,7 +127,8 @@ namespace nil {
                     (1 << degree_log) - 1, // max_degree
                     nil::crypto3::math::calculate_domain_set<FieldType>(degree_log + expand_factor, r),
                     generate_random_step_list(r, max_step),
-                    expand_factor
+                    expand_factor,
+                    lambda
                 );
             }
         } // namespace detail
@@ -256,8 +258,7 @@ namespace nil {
 
         private:
             using BlueprintField = typename CurveType::base_field_type;
-            using LpcParams = nil::crypto3::zk::commitments::
-                list_polynomial_commitment_params<HashType, HashType, all_lambda_params[LambdaParamIdx], 2>;
+            using LpcParams = nil::crypto3::zk::commitments::list_polynomial_commitment_params<HashType, HashType, 2>;
             using Lpc = nil::crypto3::zk::commitments::list_polynomial_commitment<BlueprintField, LpcParams>;
             using LpcScheme = typename nil::crypto3::zk::commitments::lpc_commitment_scheme<Lpc>;
             using CircuitParams = nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintField>;
@@ -278,7 +279,7 @@ namespace nil {
                 BOOST_LOG_TRIVIAL(info) << "Verifying proof...";
                 bool verification_result =
                     nil::crypto3::zk::snark::placeholder_verifier<BlueprintField, PlaceholderParams>::process(
-                        *public_preprocessed_data_,
+                        public_preprocessed_data_->common_data,
                         proof,
                         *table_description_,
                         *constraint_system_,
@@ -328,9 +329,12 @@ namespace nil {
                 // Lambdas and grinding bits should be passed threw preprocessor directives
                 std::size_t table_rows_log = std::ceil(std::log2(table_description_->rows_amount));
 
-                fri_params_.emplace(
-                    detail::create_fri_params<typename Lpc::fri_type, BlueprintField>(table_rows_log, 1, expand_factor_)
-                );
+                fri_params_.emplace(detail::create_fri_params<typename Lpc::fri_type, BlueprintField>(
+                    table_rows_log,
+                    all_lambda_params[LambdaParamIdx],
+                    1,
+                    expand_factor_
+                ));
 
                 std::size_t permutation_size = table_description_->witness_columns
                     + table_description_->public_input_columns + component_constant_columns_;
