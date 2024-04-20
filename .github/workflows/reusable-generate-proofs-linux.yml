@@ -33,7 +33,7 @@ on:
         type: string
         description: "Version of Boost to install"
         required: false
-        default: '1.83.0'
+        default: '1.78.0'
 
     outputs:
       artifact-name:
@@ -186,3 +186,5 @@ jobs:
           name: ${{ steps.set-artifact-name.outputs.artifact-name }}
           path: |
             ${{ steps.strings.outputs.artifact-dir }}
+
+

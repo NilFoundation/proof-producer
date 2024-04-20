@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BOOST_VERSION: "1.83.0"
+  BOOST_VERSION: "1.78.0"
   CAA_ARTIFACT_NAME: circuits-and-assignments
   TO_ARTIFACT_NAME: transpiler-output
   INTEGRATION_TESTING_TARGETS: |
@@ -262,7 +262,7 @@ jobs:
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
         run: |
           extra_args=""
-          if [[ "true" == "true" ]]; then
+          if [[ "true" == "false" ]]; then
             extra_args="--multithreaded "
           fi
           targets_str=$(echo "${{ needs.prepare-targets.outputs.prover-targets }}" | awk '{$1=$1};1' | sed '/^$/d' | tr '\n' ' ' | sed 's/ $//')
