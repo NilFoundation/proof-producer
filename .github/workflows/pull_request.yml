@@ -262,7 +262,7 @@ jobs:
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
         run: |
           extra_args=""
-          if [[ "true" == "true" ]]; then
+          if [[ "true" == "false" ]]; then
             extra_args="--multithreaded "
           fi
           targets_str=$(echo "${{ needs.prepare-targets.outputs.prover-targets }}" | awk '{$1=$1};1' | sed '/^$/d' | tr '\n' ' ' | sed 's/ $//')
