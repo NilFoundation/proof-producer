@@ -30,19 +30,18 @@
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 #include <nil/crypto3/marshalling/zk/types/commitments/eval_storage.hpp>
 #include <nil/crypto3/marshalling/zk/types/commitments/lpc.hpp>
-#include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
 #include <nil/crypto3/marshalling/zk/types/placeholder/common_data.hpp>
+#include <nil/crypto3/marshalling/zk/types/placeholder/proof.hpp>
 #include <nil/crypto3/marshalling/zk/types/plonk/assignment_table.hpp>
 #include <nil/crypto3/marshalling/zk/types/plonk/constraint_system.hpp>
-
 #include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
 #include <nil/crypto3/multiprecision/cpp_int.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>
+#include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/profiling.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/params.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/preprocessor.hpp>
-#include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/profiling.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/proof.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
@@ -138,8 +137,8 @@ namespace nil {
                 , json_file_(json_file)
                 , lambda_(lambda)
                 , expand_factor_(expand_factor)
-                , grind_(grind){
-                    std::cout  << "Global constructor" << std::endl;
+                , grind_(grind) {
+                std::cout << "Global constructor" << std::endl;
             }
 
             bool generate_to_file(bool skip_verification) {
@@ -245,8 +244,7 @@ namespace nil {
 
         private:
             using BlueprintField = typename CurveType::base_field_type;
-            using LpcParams = nil::crypto3::zk::commitments::
-                list_polynomial_commitment_params<HashType, HashType, 2>;
+            using LpcParams = nil::crypto3::zk::commitments::list_polynomial_commitment_params<HashType, HashType, 2>;
             using Lpc = nil::crypto3::zk::commitments::list_polynomial_commitment<BlueprintField, LpcParams>;
             using LpcScheme = typename nil::crypto3::zk::commitments::lpc_commitment_scheme<Lpc>;
             using CircuitParams = nil::crypto3::zk::snark::placeholder_circuit_params<BlueprintField>;
@@ -317,9 +315,7 @@ namespace nil {
                 // Lambdas and grinding bits should be passed threw preprocessor directives
                 std::size_t table_rows_log = std::ceil(std::log2(table_description_->rows_amount));
 
-                fri_params_.emplace(
-                    FriParams(1, table_rows_log, lambda_, expand_factor_)
-                );
+                fri_params_.emplace(FriParams(1, table_rows_log, lambda_, expand_factor_));
 
                 lpc_scheme_.emplace(*fri_params_);
 

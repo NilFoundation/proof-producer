@@ -15,6 +15,7 @@
 //---------------------------------------------------------------------------//
 
 #include "nil/proof-generator/arg_parser.hpp"
+
 #include "nil/proof-generator/arithmetization_params.hpp"
 
 #include <fstream>

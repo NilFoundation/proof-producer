@@ -42,8 +42,9 @@ namespace nil {
             boost::log::trivial::severity_level log_level = boost::log::trivial::severity_level::info;
             bool skip_verification = false;
             bool verification_only = false;
-            CurvesVariant elliptic_curve_type = type_identity<nil::crypto3::algebra::curves::pallas> {};
-            HashesVariant hash_type = type_identity<nil::crypto3::hashes::keccak_1600<256>> {};;
+            CurvesVariant elliptic_curve_type = type_identity<nil::crypto3::algebra::curves::pallas>{};
+            HashesVariant hash_type = type_identity<nil::crypto3::hashes::keccak_1600<256>>{};
+            ;
             std::size_t lambda = 9;
             std::size_t grind = 69;
             std::size_t expand_factor = 2;
