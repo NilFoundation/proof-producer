@@ -25,7 +25,6 @@
 #include <sstream>
 
 #include <boost/log/trivial.hpp>
-#include <boost/test/unit_test.hpp> // TODO: remove this. Required only because of an incorrect assert check in zk
 
 #include <nil/crypto3/algebra/fields/arithmetic_params/pallas.hpp>
 #include <nil/crypto3/marshalling/zk/types/commitments/eval_storage.hpp>
@@ -35,7 +34,6 @@
 #include <nil/crypto3/marshalling/zk/types/plonk/assignment_table.hpp>
 #include <nil/crypto3/marshalling/zk/types/plonk/constraint_system.hpp>
 #include <nil/crypto3/math/algorithms/calculate_domain_set.hpp>
-#include <nil/crypto3/multiprecision/cpp_int.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/constraint_system.hpp>
 #include <nil/crypto3/zk/snark/arithmetization/plonk/params.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/detail/placeholder_policy.hpp>

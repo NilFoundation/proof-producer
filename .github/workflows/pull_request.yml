@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BOOST_VERSION: "1.78.0"
+  BOOST_VERSION: "1.80.0"
   CAA_ARTIFACT_NAME: circuits-and-assignments
   TO_ARTIFACT_NAME: transpiler-output
   INTEGRATION_TESTING_TARGETS: |
@@ -143,7 +143,7 @@ jobs:
       (needs.prepare-targets.result == 'success' || needs.prepare-targets.result == 'skipped')
     strategy:
       matrix:
-        cpp-compiler: [ g++, clang++ ]
+        cpp-compiler: [ clang++ ] # TODO: g++ built binary can't find libboost_thread-mt-x64.so.1.83.0 in runtime. Nix build will fix it
         build-type: [ Release ]
       fail-fast: false
     outputs:
@@ -234,6 +234,7 @@ jobs:
           # https://github.com/MarkusJx/prebuilt-boost/blob/main/versions-manifest.json
           platform_version: ${{ steps.strings.outputs.platform-version }}
           boost_install_dir: ${{ steps.strings.outputs.dependencies-dir }}
+          link: static+shared
 
       - name: Configure CMake
         env:
@@ -246,8 +247,7 @@ jobs:
             -G "Unix Makefiles" \
             -B build \
             -DCMAKE_CXX_COMPILER=${{ matrix.cpp-compiler }} \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-            -DBoost_ARCHITECTURE=-x64
+            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
 
       - name: Build proof-producer
         working-directory: ${{ steps.strings.outputs.build-dir }}
@@ -316,7 +316,7 @@ jobs:
             ${{ steps.strings.outputs.artifact-dir }}/transpiler_output_*
 
       - name: Upload .deb package
-        if: matrix.cpp-compiler == 'g++' && matrix.build-type == 'Release'
+        if: matrix.cpp-compiler == 'clang++' && matrix.build-type == 'Release'
         uses: actions/upload-artifact@v4
         with:
           name: proof-producer.deb

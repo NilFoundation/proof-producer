@@ -48,12 +48,17 @@ function(setup_proof_generator_target)
         endforeach()
     endif()
 
-
     set_target_properties(${ARG_TARGET_NAME} PROPERTIES
         LINKER_LANGUAGE CXX
         EXPORT_NAME ${ARG_TARGET_NAME}
         CXX_STANDARD 17
         CXX_STANDARD_REQUIRED TRUE)
+
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        target_compile_options(${ARG_TARGET_NAME} PRIVATE "-fconstexpr-steps=2147483647")
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(${ARG_TARGET_NAME} PRIVATE "-fconstexpr-ops-limit=4294967295")
+    endif ()
 
     target_include_directories(${ARG_TARGET_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>

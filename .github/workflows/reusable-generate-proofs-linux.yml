@@ -33,7 +33,7 @@ on:
         type: string
         description: "Version of Boost to install"
         required: false
-        default: '1.78.0'
+        default: '1.80.0'
 
     outputs:
       artifact-name:
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        cpp-compiler: [ g++, clang++ ]
+        cpp-compiler: [ clang++ ] # TODO: g++ built binary can't find libboost_thread-mt-x64.so.1.83.0 in runtime. Nix build will fix it
         build-type: [ Release ]
       fail-fast: false
     outputs:
@@ -133,6 +133,7 @@ jobs:
           # https://github.com/MarkusJx/prebuilt-boost/blob/main/versions-manifest.json
           platform_version: ${{ steps.strings.outputs.platform-version }}
           boost_install_dir: ${{ steps.strings.outputs.dependencies-dir }}
+          link: static+shared
 
       - name: Configure CMake
         env:
@@ -145,8 +146,7 @@ jobs:
             -G "Unix Makefiles" \
             -B build \
             -DCMAKE_CXX_COMPILER=${{ matrix.cpp-compiler }} \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-            -DBoost_ARCHITECTURE=-x64
+            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
 
       - name: Build proof-producer
         working-directory: ${{ steps.strings.outputs.build-dir }}
@@ -180,11 +180,9 @@ jobs:
 
       - name: Upload circuits, assignments and proofs artifact
         # Only from a single matrix configuration. Assuming everyone produce the same results if not failed.
-        if: matrix.cpp-compiler == 'g++' && matrix.build-type == 'Release'
+        if: matrix.cpp-compiler == 'clang++' && matrix.build-type == 'Release'
         uses: actions/upload-artifact@v3
         with:
           name: ${{ steps.set-artifact-name.outputs.artifact-name }}
           path: |
             ${{ steps.strings.outputs.artifact-dir }}
-
-
