@@ -1,53 +1,37 @@
 #---------------------------------------------------------------------------#
 # Copyright (c) 2022 Mikhail Komarov <nemo@nil.foundation>
 # Copyright (c) 2022 Aleksei Moskvin <alalmoskvin@nil.foundation>
+# Copyright (c) 2024 Iosif (x-mass) <x-mass@nil.foundation>
 #
 # Distributed under the Boost Software License, Version 1.0
 # See accompanying file LICENSE_1_0.txt or copy at
 # http://www.boost.org/LICENSE_1_0.txt
 #---------------------------------------------------------------------------#
 
-cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
+
+list(APPEND CMAKE_MODULE_PATH
+    "${CMAKE_CURRENT_LIST_DIR}/cmake"
+    "${CMAKE_CURRENT_LIST_DIR}/cmake/packages"
+    "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/share/modules/cmake"
+)
 
 cmake_policy(SET CMP0042 NEW)
 cmake_policy(SET CMP0028 NEW)
 cmake_policy(SET CMP0057 NEW)
 
-find_program(CCACHE_PROGRAM ccache)
-if(CCACHE_PROGRAM)
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE_PROGRAM}")
-endif()
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake"
-        "${CMAKE_CURRENT_LIST_DIR}/cmake/packages"
-        "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/share/modules/cmake")
-
 include(CMConfig)
 include(CMDeploy)
 include(CMSetupVersion)
-include_directories(${Boost_INCLUDE_DIRS})
 
-cm_workspace(proof-producer)
+cm_project(proof-generator WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES CXX)
 
-option(BUILD_TESTS "Build unit tests" FALSE)
-option(BUILD_EXAMPLES "Build unit tests" FALSE)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
-macro(cm_find_package NAME)
-if(NOT "${NAME}" MATCHES "^${CMAKE_WORKSPACE_NAME}_.*$" AND NOT "${NAME}" STREQUAL CM)
-find_package(${ARGV})
-else()
-set(${ARGV0}_FOUND ON CACHE BOOL "")
-endif()
-endmacro()
-
-option(BUILD_TESTS "Build unit tests" FALSE)
-option(BUILD_SHARED_LIBS "Build shared library" TRUE)
-option(BUILD_WITH_BOOST_STATIC_LIBS "Build using Boost static libraries" TRUE)
-
-if(BUILD_WITH_BOOST_STATIC_LIBS)
-    set(Boost_USE_STATIC_LIBS TRUE)
-else()
-    set(Boost_USE_STATIC_LIBS FALSE)
+# TODO: move thread to actor-core
+find_package(Boost REQUIRED COMPONENTS filesystem log program_options thread)
+if(ENABLE_TESTS)
+    find_package(Boost REQUIRED COMPONENTS unit_test_framework)
 endif()
 
 # EXCLUDE_FROM_ALL is needed so crypto3 and other headers won't be installed

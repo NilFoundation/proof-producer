@@ -9,13 +9,8 @@
 # http://www.boost.org/LICENSE_1_0.txt
 #---------------------------------------------------------------------------#
 
-cmake_minimum_required(VERSION 3.5)
-
-cm_find_package(CM)
 include(CMDeploy)
 include(CMSetupVersion)
-
-cm_project(proof-generator WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES ASM C CXX)
 
 if (CPACK_PACKAGE_VERSION)
     add_compile_definitions(PROOF_GENERATOR_VERSION=${CPACK_PACKAGE_VERSION})
@@ -31,12 +26,6 @@ endif()
 if(ZK_PLACEHOLDER_DEBUG)
     add_definitions(-DZK_PLACEHOLDER_DEBUG_ENABLED)
 endif()
-
-if (NOT Boost_FOUND)
-    find_package(Boost COMPONENTS REQUIRED filesystem log log_setup program_options thread system)
-endif ()
-
-cm_setup_version(VERSION 0.1.0)
 
 # Function to setup common properties for a target
 function(setup_proof_generator_target)
@@ -92,21 +81,6 @@ function(setup_proof_generator_target)
         Boost::program_options
         Boost::thread
     )
-
-    if (APPLE OR NOT ${CMAKE_TARGET_ARCHITECTURE} STREQUAL ${CMAKE_HOST_SYSTEM_PROCESSOR})
-        set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES
-                XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "${APPLE_CODE_SIGN_IDENTITY}"
-                XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "${CMAKE_XCODE_ATTRIBUTE_DEVELOPMENT_TEAM}")
-    elseif (CMAKE_CROSSCOMPILING AND CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-        if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
-            set_target_properties(${CURRENT_PROJECT_NAME} PROPERTIES
-                    COMPILE_FLAGS "-s USE_BOOST_HEADERS=1 -s USE_PTHREADS -s PROXY_TO_PTHREAD"
-                    LINK_FLAGS "-s USE_BOOST_HEADERS=1 -s USE_PTHREADS -s PROXY_TO_PTHREAD"
-                    LINK_DIRECTORIES "${CMAKE_BINARY_DIR}/libs/boost/src/boost/stage/lib")
-        endif ()
-
-        add_dependencies(${CURRENT_PROJECT_NAME} boost)
-    endif ()
 endfunction()
 
 # Declare single-threaded target
@@ -114,7 +88,7 @@ set(SINGLE_THREADED_TARGET "${CURRENT_PROJECT_NAME}-single-threaded")
 setup_proof_generator_target(TARGET_NAME ${SINGLE_THREADED_TARGET} ADDITIONAL_DEPENDENCIES crypto3::zk)
 
 # Declare multi-threaded target
-# set(MUTLI_THREADED_TARGET "${CURRENT_PROJECT_NAME}-multi-threaded")
-# setup_proof_generator_target(TARGET_NAME ${MUTLI_THREADED_TARGET} ADDITIONAL_DEPENDENCIES actor::zk)
+set(MUTLI_THREADED_TARGET "${CURRENT_PROJECT_NAME}-multi-threaded")
+setup_proof_generator_target(TARGET_NAME ${MUTLI_THREADED_TARGET} ADDITIONAL_DEPENDENCIES actor::zk)
 
 install(TARGETS ${SINGLE_THREADED_TARGET} ${MUTLI_THREADED_TARGET} RUNTIME DESTINATION bin)

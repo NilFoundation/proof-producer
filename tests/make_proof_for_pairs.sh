@@ -21,7 +21,7 @@ make_proof_for_pair() {
     if [ -f "$crct_file" ]; then
         mkdir -p "$proof_dir"  # Ensure the output directory exists
         echo -n "Processing $tbl_file and $crct_file (proof will be at $proof_dir): "
-        if $proof_generator_binary -t "$tbl_file" --circuit "$crct_file" --proof "$proof_dir/proof.bin"; then
+        if $proof_generator_binary -t "$tbl_file" --circuit "$crct_file" --proof "$proof_dir/proof.bin" ${args_to_forward[@]}; then
             color_green "success"
         else
             color_red "failed"
@@ -41,8 +41,9 @@ clean_up() {
 parse_args() {
     base_dir="."
     output_dir=""
-    targets=()
     use_multithreaded=false
+    args_to_forward=()
+    targets=()
 
     while [ "$#" -gt 0 ]; do
         case "$1" in
@@ -57,6 +58,13 @@ parse_args() {
             --multithreaded)
                 use_multithreaded=true
                 shift
+                ;;
+            --)
+                shift
+                while [ "$#" -gt 0 ]; do
+                    args_to_forward+=("$1")  # Collect remaining arguments
+                    shift
+                done
                 ;;
             *)
                 targets+=("$1")  # Add remaining arguments as targets
