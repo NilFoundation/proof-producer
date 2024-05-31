@@ -20,7 +20,7 @@ jobs:
       CONTAINER_TMP: /opt/
       HOST_TMP: /home/runner/work/_temp/
       DEBIAN_FRONTEND: noninteractive
-      BOOST_VERSION: "1.83.0"
+      BOOST_VERSION: "1.80.0"
 
     container:
       image: ubuntu:22.04
