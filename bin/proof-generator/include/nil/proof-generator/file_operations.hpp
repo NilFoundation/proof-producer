@@ -120,6 +120,65 @@ namespace nil {
             return v;
         }
 
+        std::string add_filename_prefix(
+            const std::string& prefix,
+            const std::string& file_name
+        ) {
+            boost::filesystem::path path(file_name);
+            boost::filesystem::path parent_path = path.parent_path();
+            boost::filesystem::path filename = path.filename();
+
+            std::string new_filename = prefix + filename.string();
+            boost::filesystem::path new_path = parent_path / new_filename;
+
+            return new_path.string();
+        }
+
+
+        bool read_column_to_vector (
+            std::vector<std::uint8_t>& result_vector,
+            const std::string& prefix,
+            const std::string& assignment_table_file_name
+
+        ) {
+            std::ifstream icolumn;
+            icolumn.open(add_filename_prefix(prefix, assignment_table_file_name), std::ios_base::binary | std::ios_base::in);
+            if (!icolumn) {
+                BOOST_LOG_TRIVIAL(error) << "Error occurred during reading file " << add_filename_prefix(prefix, assignment_table_file_name);
+                return false;
+            }
+
+            icolumn.seekg(0, std::ios_base::end);
+            const auto input_size = icolumn.tellg();
+            std::size_t old_size = result_vector.size();
+            result_vector.resize(old_size + input_size);
+            icolumn.seekg(0, std::ios_base::beg);
+            icolumn.read(reinterpret_cast<char*>(result_vector.data() + old_size), input_size);
+            icolumn.close();
+            return true;
+        }
+
+
+        std::optional<std::vector<std::uint8_t>> read_table_file_to_vector(const std::string& path) {
+
+            std::vector<std::uint8_t> v;
+
+            if (
+                !(
+                    read_column_to_vector(v, "header_", path) &&
+                    read_column_to_vector(v, "witness_", path) &&
+                    read_column_to_vector(v, "pub_inp_", path) &&
+                    read_column_to_vector(v, "constants_", path) &&
+                    read_column_to_vector(v, "selectors_", path)
+                )
+            ) {
+                return std::nullopt;
+            }
+
+            return v;
+        }
+
+
         bool write_vector_to_file(const std::vector<std::uint8_t>& vector, const std::string& path) {
 
             auto file = open_file<std::ofstream>(path, std::ios_base::out | std::ios_base::binary);

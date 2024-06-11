@@ -76,6 +76,26 @@ namespace nil {
                 return marshalled_data;
             }
 
+
+            template<typename MarshallingType>
+            std::optional<MarshallingType> decode_table_from_file(
+                const boost::filesystem::path& path
+            ) {
+                const auto v = read_table_file_to_vector(path.c_str());
+                if (!v.has_value()) {
+                    return std::nullopt;
+                }
+
+                MarshallingType marshalled_data;
+                auto read_iter = v->begin();
+                auto status = marshalled_data.read(read_iter, v->size());
+                if (status != nil::marshalling::status_type::success) {
+                    BOOST_LOG_TRIVIAL(error) << "Marshalled structure decoding failed";
+                    return std::nullopt;
+                }
+                return marshalled_data;
+            }
+
             template<typename MarshallingType>
             bool encode_marshalling_to_file(
                 const boost::filesystem::path& path,
@@ -303,7 +323,7 @@ namespace nil {
                 using TableValueMarshalling =
                     nil::crypto3::marshalling::types::plonk_assignment_table<TTypeBase, AssignmentTable>;
                 auto marshalled_table =
-                    detail::decode_marshalling_from_file<TableValueMarshalling>(assignment_table_file_);
+                    detail::decode_table_from_file<TableValueMarshalling>(assignment_table_file_);
                 if (!marshalled_table) {
                     return false;
                 }
