@@ -35,31 +35,24 @@ if(ENABLE_TESTS)
 endif()
 
 # EXCLUDE_FROM_ALL is needed so crypto3 and other headers won't be installed
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3" EXCLUDE_FROM_ALL)
+# add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3" EXCLUDE_FROM_ALL)
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/module" EXCLUDE_FROM_ALL)
 
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/container" EXCLUDE_FROM_ALL)
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/core" EXCLUDE_FROM_ALL)
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/math" EXCLUDE_FROM_ALL)
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/zk" EXCLUDE_FROM_ALL)
+# add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/container" EXCLUDE_FROM_ALL)
+# add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/core" EXCLUDE_FROM_ALL)
+# add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/math" EXCLUDE_FROM_ALL)
+# add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/zk" EXCLUDE_FROM_ALL)
 
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/transpiler" EXCLUDE_FROM_ALL)
 
+# Read version from VERSION file
+set(VERSION_FILE "${CMAKE_CURRENT_LIST_DIR}/VERSION")
+file(READ ${VERSION_FILE} VERSION_DATA)
+string(STRIP ${VERSION_DATA} VERSION_STR)
+set(PROOF_PRODUCER_VERSION "${DESCRIBE_OUTPUT}")
 if(NOT PROOF_PRODUCER_VERSION)
-    find_program(GIT_EXECUTABLE NAMES git PATHS /usr/bin /usr/local/bin)
-    message(STATUS "Running command: ${GIT_EXECUTABLE} describe --tags HEAD")
-    execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags HEAD
-                    OUTPUT_VARIABLE DESCRIBE_OUTPUT
-                    OUTPUT_STRIP_TRAILING_WHITESPACE
-                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    message(STATUS "Git describe output: ${DESCRIBE_OUTPUT}")
-
-    set(PROOF_PRODUCER_VERSION "${DESCRIBE_OUTPUT}")
-
-    if(NOT PROOF_PRODUCER_VERSION)
-        message(FATAL_ERROR
-                "Unable to retrive version from git or ${VERSION_FILE} file.")
-    endif()
+    message(FATAL_ERROR
+            "Unable to retrive version from git or ${VERSION_FILE} file.")
 endif()
 
 # Remove preceding 'v' from tag
