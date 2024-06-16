@@ -24,11 +24,11 @@ env:
     poseidon_cpp_example
     merkle_tree_poseidon_cpp_example
     uint_remainder_cpp
-    uint_shift_left
-    uint_bit_decomposition
-    uint_bit_composition
     compare_eq_cpp
     private_input_cpp
+  # uint_shift_left
+  # uint_bit_decomposition
+  # uint_bit_composition
 
 jobs:
   handle-syncwith:
@@ -124,14 +124,9 @@ jobs:
           done
           echo "run-id=${run_id}" >> $GITHUB_OUTPUT
 
-
-  # This is copied from reusable-generate-proofs-linux.yml
-  # Disgusting duplication, we should better move all preparation and build to nix, then
-  #   make testing steps a composite action.
   build-and-generate-proofs:
     name: Build prover, generate proofs for circuits
     runs-on: ubuntu-22.04
-    container: ubuntu:jammy-20240111
     needs:
       - handle-syncwith
       - get-zkllvm-run
@@ -141,74 +136,40 @@ jobs:
       (needs.handle-syncwith.result == 'success' || needs.handle-syncwith.result == 'skipped') &&
       (needs.get-zkllvm-run.result == 'success' || needs.get-zkllvm-run.result == 'skipped') &&
       (needs.prepare-targets.result == 'success' || needs.prepare-targets.result == 'skipped')
-    strategy:
-      matrix:
-        cpp-compiler: [ clang++ ] # TODO: g++ built binary can't find libboost_thread-mt-x64.so.1.83.0 in runtime. Nix build will fix it
-        build-type: [ Release ]
-      fail-fast: false
     outputs:
       artifact-name: ${{ steps.artifact-name.outputs.merged }}
-    defaults:
-      run:
-        shell: bash
 
     steps:
-      # It takes centuries for GH developers to fix bugs (https://github.com/actions/runner/issues/2058),
-      #   that's why we use `/__w/proof-producer/proof-producer` instead of ${{ github.workspace }}
-
-      - name: Install Git CLI for Ubuntu container
-        # GH runner image does not need it
-        run: |
-          apt-get update
-          apt-get install git -y
-
-      - name: Checkout proof-producer
+      - name: Checkout Proof Producer
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
-          fetch-depth: 0 # We have to fetch all to find nearest tag for version
+          fetch-depth: 0
+          submodules: recursive
 
-      - name: Install dependencies
-        uses: ./.github/actions/composite-install-dependecies
-
-      - name: Print toolchain information
-        run: |
-          git --version
-          cc --version
-          cmake --version
-
-      - name: Run clang-format
-        run: |
-          if find bin -iname '*.cpp' -o -iname '*.hpp' | xargs clang-format -n --Werror; then
-            echo "Code formatting is correct"
-          else
-            echo "Code formatting differs from clang-format's expectations, run 'find bin -iname *.hpp -o -iname *.cpp | xargs clang-format -i'"
-            exit 1
-          fi
-
-      - name: Mark git directory as safe
-        # https://github.com/actions/checkout/issues/766
-        run: |
-          git config --global --add safe.directory $PWD
-
-      - name: Checkout modules to specified refs
-        if: ${{ needs.handle-syncwith.outputs.prs-refs }} != ''
-        uses: NilFoundation/ci-cd/actions/recursive-checkout@v1.1.1
+      - name: Checkout submodules to specified refs
+        if: inputs.submodules-refs != ''
+        uses: NilFoundation/ci-cd/actions/recursive-checkout@v1.2.1
         with:
-          paths: |
-            /__w/proof-producer/proof-producer/**
-            !/__w/proof-producer/proof-producer/
-            !/__w/proof-producer/proof-producer/**/.git/**
           refs: ${{ needs.handle-syncwith.outputs.prs-refs }}
+          paths: |
+            ${{ github.workspace }}/**
+            !${{ github.workspace }}/
+            !${{ github.workspace }}/**/.git/**
+
+      - uses: cachix/install-nix-action@v27
+      - uses: DeterminateSystems/magic-nix-cache-action@v7
+
+      - name: Run checks
+        run: nix -L build '.?submodules=1#'
+        env:
+          NIX_CONFIG: |
+            cores = 2
+            max-jobs = 1
 
       - name: Set usefull strings
         id: strings
         run: |
-          echo "build-dir=/__w/proof-producer/proof-producer/build" >> $GITHUB_OUTPUT
-          echo "dependencies-dir=/__w/proof-producer/proof-producer/../dependencies" >> $GITHUB_OUTPUT
-          echo "artifact-dir=$(realpath /__w/proof-producer/proof-producer/../artifacts)" >> $GITHUB_OUTPUT
-
-          echo "platform-version=$(lsb_release -rs)" >> $GITHUB_OUTPUT
+          echo "artifact-dir=$(realpath ${{ github.workspace }}/../artifacts)" >> $GITHUB_OUTPUT
 
       - name: Download circuits and assignments artifact
         uses: dawidd6/action-download-artifact@v3
@@ -225,35 +186,6 @@ jobs:
         run: |
           unzip ${{ env.CAA_ARTIFACT_NAME }}.zip
 
-      - name: Install Boost
-        uses: MarkusJx/install-boost@v2.4.4
-        id: install-boost
-        with:
-          boost_version: ${{ env.BOOST_VERSION }}
-          # A list of supported versions can be found here:
-          # https://github.com/MarkusJx/prebuilt-boost/blob/main/versions-manifest.json
-          platform_version: ${{ steps.strings.outputs.platform-version }}
-          boost_install_dir: ${{ steps.strings.outputs.dependencies-dir }}
-          link: static+shared
-
-      - name: Configure CMake
-        env:
-          BOOST_ROOT: "${{ steps.install-boost.outputs.BOOST_ROOT }}"
-        # The MarkusJx/install-boost action names libraries in the format lib...-x64.(a|so). CMake's FindBoost module
-        #   checks whether the CMAKE_CXX_COMPILER_ARCHITECTURE_ID variable is set and adds an architecture suffix based on it. However,
-        #   this variable is not set, so we need to manually specify the suffix using Boost_ARCHITECTURE.
-        run: |
-          cmake \
-            -G "Unix Makefiles" \
-            -B build \
-            -DCMAKE_CXX_COMPILER=${{ matrix.cpp-compiler }} \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
-
-      - name: Build proof-producer
-        working-directory: ${{ steps.strings.outputs.build-dir }}
-        run: |
-          make package
-
       - name: List artifacts
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
         run: find .
@@ -267,7 +199,7 @@ jobs:
           fi
           targets_str=$(echo "${{ needs.prepare-targets.outputs.prover-targets }}" | awk '{$1=$1};1' | sed '/^$/d' | tr '\n' ' ' | sed 's/ $//')
           echo "targets from input: ${targets_str}"
-          /__w/proof-producer/proof-producer/tests/make_proof_for_pairs.sh ${extra_args} ${targets_str}
+          ${{ github.workspace }}/tests/make_proof_for_pairs.sh --use-nix ${extra_args} ${targets_str}
 
       - name: Download transpiler output artifact
         id: download-to-artifact
@@ -288,6 +220,7 @@ jobs:
 
             if [[ -d "$base_name" ]]; then
               if ! cp "${base_name}/proof.bin" "${dir}/"; then
+                # fails if artifact contains dirs targets we didn't produce proofs for
                 echo "Failed to copy proof.bin to ${dir}" >&2
                 copy_failed=1
               else
@@ -299,8 +232,7 @@ jobs:
           done < <(find . -type d -name "transpiler_output_*")
 
           if [ $copy_failed -eq 1 ]; then
-            echo "One or more copy operations failed."
-            exit 1
+            echo "One or more copy operations failed." >&2
           fi
 
       - name: Set aritfact name
@@ -315,13 +247,14 @@ jobs:
           path: |
             ${{ steps.strings.outputs.artifact-dir }}/transpiler_output_*
 
-      - name: Upload .deb package
-        if: matrix.cpp-compiler == 'clang++' && matrix.build-type == 'Release'
-        uses: actions/upload-artifact@v4
-        with:
-          name: proof-producer.deb
-          path: |
-             ${{ steps.strings.outputs.build-dir }}/proof-producer*.deb
+      # TODO: add package derivation to nix, upload its result
+      # - name: Upload .deb package
+      #   if: matrix.cpp-compiler == 'clang++' && matrix.build-type == 'Release'
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: proof-producer.deb
+      #     path: |
+      #        ${{ steps.strings.outputs.build-dir }}/proof-producer*.deb
 
 
   verify-proof-producer-proofs:

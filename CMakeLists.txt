@@ -24,9 +24,16 @@ include(CMConfig)
 include(CMDeploy)
 include(CMSetupVersion)
 
-cm_project(proof-generator WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES CXX)
+cm_project(proof-producer WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
+find_package(crypto3 REQUIRED)
+
+find_package(actor_zk REQUIRED)
+find_package(actor_containers REQUIRED)
+find_package(actor_core REQUIRED)
+find_package(actor_math REQUIRED)
 
 # TODO: move thread to actor-core
 find_package(Boost REQUIRED COMPONENTS filesystem log program_options thread)
@@ -35,35 +42,19 @@ if(ENABLE_TESTS)
 endif()
 
 # EXCLUDE_FROM_ALL is needed so crypto3 and other headers won't be installed
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3" EXCLUDE_FROM_ALL)
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/module" EXCLUDE_FROM_ALL)
-
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/container" EXCLUDE_FROM_ALL)
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/core" EXCLUDE_FROM_ALL)
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/math" EXCLUDE_FROM_ALL)
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/zk" EXCLUDE_FROM_ALL)
-
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/transpiler" EXCLUDE_FROM_ALL)
 
+# Read version from VERSION file
+set(VERSION_FILE "${CMAKE_CURRENT_LIST_DIR}/VERSION")
+file(READ ${VERSION_FILE} PROOF_PRODUCER_VERSION)
+string(STRIP ${PROOF_PRODUCER_VERSION} PROOF_PRODUCER_VERSION)
+# Remove leading 'v' from tag
+string(REGEX REPLACE "^v" "" PROOF_PRODUCER_VERSION ${PROOF_PRODUCER_VERSION})
 if(NOT PROOF_PRODUCER_VERSION)
-    find_program(GIT_EXECUTABLE NAMES git PATHS /usr/bin /usr/local/bin)
-    message(STATUS "Running command: ${GIT_EXECUTABLE} describe --tags HEAD")
-    execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags HEAD
-                    OUTPUT_VARIABLE DESCRIBE_OUTPUT
-                    OUTPUT_STRIP_TRAILING_WHITESPACE
-                    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    message(STATUS "Git describe output: ${DESCRIBE_OUTPUT}")
-
-    set(PROOF_PRODUCER_VERSION "${DESCRIBE_OUTPUT}")
-
-    if(NOT PROOF_PRODUCER_VERSION)
-        message(FATAL_ERROR
-                "Unable to retrive version from git or ${VERSION_FILE} file.")
-    endif()
+    message(FATAL_ERROR
+            "Unable to retrive version from git or ${VERSION_FILE} file.")
 endif()
 
-# Remove preceding 'v' from tag
-string(REGEX REPLACE "^v" "" PROOF_PRODUCER_VERSION ${PROOF_PRODUCER_VERSION})
 # Split numbers
 string(REPLACE "-" "." PROOF_PRODUCER_VERSION_LIST ${PROOF_PRODUCER_VERSION})
 string(REPLACE "." ";" PROOF_PRODUCER_VERSION_LIST ${PROOF_PRODUCER_VERSION_LIST})
@@ -86,14 +77,8 @@ if(PROOF_PRODUCER_VERSION_INCREMENT)
     string(APPEND CPACK_PACKAGE_VERSION "-${PROOF_PRODUCER_VERSION_INCREMENT}")
 endif()
 
-if (NOT CMAKE_INSTALL_PREFIX)
-    set(CMAKE_INSTALL_PREFIX "/usr/lib/proof-producer")
-endif()
-
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/proof-generator")
-
-install(SCRIPT cmake/create-symlinks.cmake)
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/proof-producer")
 
 include(CPack)
