@@ -66,18 +66,7 @@ function(setup_proof_generator_target)
         $<$<BOOL:${Boost_FOUND}>:${Boost_INCLUDE_DIRS}>)
 
     target_link_libraries(${ARG_TARGET_NAME}
-        crypto3::algebra
-        crypto3::block
-        crypto3::codec
-        crypto3::multiprecision
-        crypto3::pkpad
-        crypto3::pubkey
-        crypto3::random
-
-        marshalling::core
-        marshalling::crypto3_algebra
-        marshalling::crypto3_multiprecision
-        marshalling::crypto3_zk
+        crypto3::all
 
         crypto3::transpiler
 
@@ -90,10 +79,10 @@ endfunction()
 
 # Declare single-threaded target
 set(SINGLE_THREADED_TARGET "${CURRENT_PROJECT_NAME}-single-threaded")
-setup_proof_generator_target(TARGET_NAME ${SINGLE_THREADED_TARGET} ADDITIONAL_DEPENDENCIES crypto3::zk)
+setup_proof_generator_target(TARGET_NAME ${SINGLE_THREADED_TARGET} crypto3::zk)
 
 # Declare multi-threaded target
-set(MUTLI_THREADED_TARGET "${CURRENT_PROJECT_NAME}-multi-threaded")
-setup_proof_generator_target(TARGET_NAME ${MUTLI_THREADED_TARGET} ADDITIONAL_DEPENDENCIES actor::zk)
+# set(MULTI_THREADED_TARGET "${CURRENT_PROJECT_NAME}-multi-threaded")
+# setup_proof_generator_target(TARGET_NAME ${MULTI_THREADED_TARGET} ADDITIONAL_DEPENDENCIES actor::zk)
 
-install(TARGETS ${SINGLE_THREADED_TARGET} ${MUTLI_THREADED_TARGET} RUNTIME DESTINATION bin)
+install(TARGETS ${SINGLE_THREADED_TARGET} ${MULTI_THREADED_TARGET} RUNTIME DESTINATION bin)
