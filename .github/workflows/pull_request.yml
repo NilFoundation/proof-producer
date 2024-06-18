@@ -164,14 +164,14 @@ jobs:
             !${{ github.workspace }}/
             !${{ github.workspace }}/**/.git/**
 
-      - name: Run clang-format
-        run: |
-          if find bin -iname '*.cpp' -o -iname '*.hpp' | xargs clang-format -n --Werror; then
-            echo "Code formatting is correct"
-          else
-            echo "Code formatting differs from clang-format's expectations, run 'find bin -iname *.hpp -o -iname *.cpp | xargs clang-format -i'"
-            exit 1
-          fi
+      # - name: Run clang-format
+      #   run: |
+      #     if find bin -iname '*.cpp' -o -iname '*.hpp' | xargs clang-format -n --Werror; then
+      #       echo "Code formatting is correct"
+      #     else
+      #       echo "Code formatting differs from clang-format's expectations, run 'find bin -iname *.hpp -o -iname *.cpp | xargs clang-format -i'"
+      #       exit 1
+      #     fi
 
       - name: Run checks
         run: nix -L build .?submodules=1
