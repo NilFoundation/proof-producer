@@ -167,18 +167,19 @@
         ]
       },
       "locked": {
-        "dirtyRev": "3751752653fc4f0e0079d35e7bd5de0b04be8b4a-dirty",
-        "dirtyShortRev": "3751752-dirty",
         "lastModified": 1718118401,
-        "narHash": "sha256-8esYs5qQ6wv2xVOoYnxB+lf5S+EpRnlGZMqVSkJiCb0=",
+        "narHash": "sha256-kolMdkaNrpys9YfcGnv7AJCdYwkvoULY9bXzwW71dXU=",
+        "ref": "refs/heads/master",
+        "rev": "3751752653fc4f0e0079d35e7bd5de0b04be8b4a",
+        "revCount": 1440,
         "submodules": true,
         "type": "git",
-        "url": "file:///home/x-mass/nil/parallel-crypto3"
+        "url": "https://github.com/NilFoundation/parallel-crypto3"
       },
       "original": {
         "submodules": true,
         "type": "git",
-        "url": "file:///home/x-mass/nil/parallel-crypto3"
+        "url": "https://github.com/NilFoundation/parallel-crypto3"
       }
     },
     "root": {

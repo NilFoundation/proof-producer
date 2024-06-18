@@ -1,16 +1,14 @@
 {
-  description = "A simple flake for building my application";
+  description = "Flake for building nil; Proof Producer";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
     crypto3 = {
       url = "git+https://github.com/NilFoundation/crypto3";
       inputs.nixpkgs.follows = "nixpkgs";
-      # flake = true;
     };
     parallel-crypto3 = {
-      # url = "git+https://github.com/NilFoundation/parallel-crypto3?submodules=1";
-      url = "git+file:///home/x-mass/nil/parallel-crypto3?submodules=1";
+      url = "git+https://github.com/NilFoundation/parallel-crypto3?submodules=1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-utils.url = "github:numtide/flake-utils";
@@ -22,8 +20,7 @@
         pkgs = import nixpkgs {
           inherit system;
         };
-      in {
-        packages.default = pkgs.stdenv.mkDerivation {
+        proof-producer = pkgs.stdenv.mkDerivation {
           name = "proof-producer";
           src = self;
 
@@ -43,8 +40,18 @@
           doCheck = false; # tests are inside crypto3-tests derivation
 
           installPhase = ''
-            cmake --build --target install
+            cmake --build . --target install
           '';
+        };
+      in {
+        packages.default = proof-producer;
+        apps.default = {
+          type = "app";
+          program = "${proof-producer}/bin/proof-producer-multi-threaded";
+        };
+        apps.single-threaded = {
+          type = "app";
+          program = "${proof-producer}/bin/proof-producer-single-threaded";
         };
       }
     );

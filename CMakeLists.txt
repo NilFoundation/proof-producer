@@ -24,7 +24,7 @@ include(CMConfig)
 include(CMDeploy)
 include(CMSetupVersion)
 
-cm_project(proof-generator WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES CXX)
+cm_project(proof-producer WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
@@ -88,14 +88,8 @@ if(PROOF_PRODUCER_VERSION_INCREMENT)
     string(APPEND CPACK_PACKAGE_VERSION "-${PROOF_PRODUCER_VERSION_INCREMENT}")
 endif()
 
-if (NOT CMAKE_INSTALL_PREFIX)
-    set(CMAKE_INSTALL_PREFIX "/var/empty/lib/proof-producer")
-endif()
-
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
 
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/proof-generator")
-
-install(SCRIPT cmake/create-symlinks.cmake)
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/bin/proof-producer")
 
 include(CPack)
