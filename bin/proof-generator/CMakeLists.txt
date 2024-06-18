@@ -66,13 +66,7 @@ function(setup_proof_generator_target)
         $<$<BOOL:${Boost_FOUND}>:${Boost_INCLUDE_DIRS}>)
 
     target_link_libraries(${ARG_TARGET_NAME}
-        crypto3::algebra
-        crypto3::block
-        crypto3::codec
-        crypto3::multiprecision
-        crypto3::pkpad
-        crypto3::pubkey
-        crypto3::random
+        crypto3::all
 
         marshalling::core
         marshalling::crypto3_algebra
@@ -90,7 +84,7 @@ endfunction()
 
 # Declare single-threaded target
 set(SINGLE_THREADED_TARGET "${CURRENT_PROJECT_NAME}-single-threaded")
-setup_proof_generator_target(TARGET_NAME ${SINGLE_THREADED_TARGET} ADDITIONAL_DEPENDENCIES crypto3::zk)
+setup_proof_generator_target(TARGET_NAME ${SINGLE_THREADED_TARGET} crypto3::zk)
 
 # Declare multi-threaded target
 set(MUTLI_THREADED_TARGET "${CURRENT_PROJECT_NAME}-multi-threaded")

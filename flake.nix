@@ -4,11 +4,13 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
     crypto3 = {
-      url = "git+https://github.com/NilFoundation/crypto3?submodules=1";
+      url = "git+https://github.com/NilFoundation/crypto3";
       inputs.nixpkgs.follows = "nixpkgs";
+      # flake = true;
     };
     parallel-crypto3 = {
-      url = "git+https://github.com/NilFoundation/crypto3?submodules=1";
+      # url = "git+https://github.com/NilFoundation/parallel-crypto3?submodules=1";
+      url = "git+file:///home/x-mass/nil/parallel-crypto3?submodules=1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-utils.url = "github:numtide/flake-utils";
@@ -34,8 +36,6 @@
           ];
 
           cmakeFlags = [
-            "-B build"
-            "-G Ninja"
             "-DCMAKE_BUILD_TYPE=Release"
             "-DCMAKE_INSTALL_PREFIX=${placeholder "out"}"
           ];
@@ -43,7 +43,7 @@
           doCheck = false; # tests are inside crypto3-tests derivation
 
           installPhase = ''
-            cmake --build build --target install
+            cmake --build --target install
           '';
         };
       }

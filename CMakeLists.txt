@@ -28,6 +28,16 @@ cm_project(proof-generator WORKSPACE_NAME ${CMAKE_WORKSPACE_NAME} LANGUAGES CXX)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 
+find_package(crypto3_zk REQUIRED)
+find_package(crypto3_algebra REQUIRED)
+find_package(crypto3_random REQUIRED)
+find_package(marshalling_crypto3_zk REQUIRED)
+
+find_package(actor_zk REQUIRED)
+find_package(actor_containers REQUIRED)
+find_package(actor_core REQUIRED)
+find_package(actor_math REQUIRED)
+
 # TODO: move thread to actor-core
 find_package(Boost REQUIRED COMPONENTS filesystem log program_options thread)
 if(ENABLE_TESTS)
@@ -47,16 +57,15 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/transpiler" EXCLUDE_FROM_ALL)
 
 # Read version from VERSION file
 set(VERSION_FILE "${CMAKE_CURRENT_LIST_DIR}/VERSION")
-file(READ ${VERSION_FILE} VERSION_DATA)
-string(STRIP ${VERSION_DATA} VERSION_STR)
-set(PROOF_PRODUCER_VERSION "${DESCRIBE_OUTPUT}")
+file(READ ${VERSION_FILE} PROOF_PRODUCER_VERSION)
+string(STRIP ${PROOF_PRODUCER_VERSION} PROOF_PRODUCER_VERSION)
+# Remove leading 'v' from tag
+string(REGEX REPLACE "^v" "" PROOF_PRODUCER_VERSION ${PROOF_PRODUCER_VERSION})
 if(NOT PROOF_PRODUCER_VERSION)
     message(FATAL_ERROR
             "Unable to retrive version from git or ${VERSION_FILE} file.")
 endif()
 
-# Remove preceding 'v' from tag
-string(REGEX REPLACE "^v" "" PROOF_PRODUCER_VERSION ${PROOF_PRODUCER_VERSION})
 # Split numbers
 string(REPLACE "-" "." PROOF_PRODUCER_VERSION_LIST ${PROOF_PRODUCER_VERSION})
 string(REPLACE "." ";" PROOF_PRODUCER_VERSION_LIST ${PROOF_PRODUCER_VERSION_LIST})
@@ -80,7 +89,7 @@ if(PROOF_PRODUCER_VERSION_INCREMENT)
 endif()
 
 if (NOT CMAKE_INSTALL_PREFIX)
-    set(CMAKE_INSTALL_PREFIX "/usr/lib/proof-producer")
+    set(CMAKE_INSTALL_PREFIX "/var/empty/lib/proof-producer")
 endif()
 
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})

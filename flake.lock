@@ -8,6 +8,28 @@
         ]
       },
       "locked": {
+        "lastModified": 1718615009,
+        "narHash": "sha256-OB8l6R5IQmlxxFWOTEOity4KzGkE3Xv+4ky5ApZuuE0=",
+        "ref": "refs/heads/master",
+        "rev": "59bf6669a591622ed80673e4411c5c9fcfc6227a",
+        "revCount": 9142,
+        "type": "git",
+        "url": "https://github.com/NilFoundation/crypto3"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://github.com/NilFoundation/crypto3"
+      }
+    },
+    "crypto3_2": {
+      "inputs": {
+        "nix-3rdparty": "nix-3rdparty_2",
+        "nixpkgs": [
+          "parallel-crypto3",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
         "lastModified": 1718204830,
         "narHash": "sha256-WF19QBt+u9rUwqTy71DeK7PLHcE3HqA3T+EISH98o5c=",
         "ref": "refs/heads/master",
@@ -103,7 +125,7 @@
       "inputs": {
         "flake-utils": "flake-utils_3",
         "nixpkgs": [
-          "parallel-crypto3",
+          "crypto3",
           "nixpkgs"
         ]
       },
@@ -139,25 +161,24 @@
     },
     "parallel-crypto3": {
       "inputs": {
-        "nix-3rdparty": "nix-3rdparty_2",
+        "crypto3": "crypto3_2",
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1718204830,
-        "narHash": "sha256-WF19QBt+u9rUwqTy71DeK7PLHcE3HqA3T+EISH98o5c=",
-        "ref": "refs/heads/master",
-        "rev": "8853748ceffacde6becc9d1ed3f6adacd0f05d29",
-        "revCount": 9141,
+        "dirtyRev": "3751752653fc4f0e0079d35e7bd5de0b04be8b4a-dirty",
+        "dirtyShortRev": "3751752-dirty",
+        "lastModified": 1718118401,
+        "narHash": "sha256-8esYs5qQ6wv2xVOoYnxB+lf5S+EpRnlGZMqVSkJiCb0=",
         "submodules": true,
         "type": "git",
-        "url": "https://github.com/NilFoundation/crypto3"
+        "url": "file:///home/x-mass/nil/parallel-crypto3"
       },
       "original": {
         "submodules": true,
         "type": "git",
-        "url": "https://github.com/NilFoundation/crypto3"
+        "url": "file:///home/x-mass/nil/parallel-crypto3"
       }
     },
     "root": {
