@@ -8,39 +8,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1718615009,
-        "narHash": "sha256-OB8l6R5IQmlxxFWOTEOity4KzGkE3Xv+4ky5ApZuuE0=",
+        "lastModified": 1718821034,
+        "narHash": "sha256-j3fsPiltYzctIgAWakAHdPLAxq+UiXXnKNmAu+oN7Us=",
         "ref": "refs/heads/master",
-        "rev": "59bf6669a591622ed80673e4411c5c9fcfc6227a",
-        "revCount": 9142,
+        "rev": "caf78b83692b39f504c4ee74a3834a4c38662a77",
+        "revCount": 9146,
         "type": "git",
         "url": "https://github.com/NilFoundation/crypto3"
       },
       "original": {
-        "type": "git",
-        "url": "https://github.com/NilFoundation/crypto3"
-      }
-    },
-    "crypto3_2": {
-      "inputs": {
-        "nix-3rdparty": "nix-3rdparty_2",
-        "nixpkgs": [
-          "parallel-crypto3",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1718204830,
-        "narHash": "sha256-WF19QBt+u9rUwqTy71DeK7PLHcE3HqA3T+EISH98o5c=",
-        "ref": "refs/heads/master",
-        "rev": "8853748ceffacde6becc9d1ed3f6adacd0f05d29",
-        "revCount": 9141,
-        "submodules": true,
-        "type": "git",
-        "url": "https://github.com/NilFoundation/crypto3"
-      },
-      "original": {
-        "submodules": true,
         "type": "git",
         "url": "https://github.com/NilFoundation/crypto3"
       }
@@ -81,24 +57,6 @@
         "type": "github"
       }
     },
-    "flake-utils_3": {
-      "inputs": {
-        "systems": "systems_3"
-      },
-      "locked": {
-        "lastModified": 1710146030,
-        "narHash": "sha256-SZ5L6eA7HJ/nmkzGG7/ISclqe6oZdOZTNoesiInkXPQ=",
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "rev": "b1d9ab70662946ef0850d488da1c9019f3a9752a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "numtide",
-        "repo": "flake-utils",
-        "type": "github"
-      }
-    },
     "nix-3rdparty": {
       "inputs": {
         "flake-utils": "flake-utils",
@@ -121,35 +79,13 @@
         "type": "github"
       }
     },
-    "nix-3rdparty_2": {
-      "inputs": {
-        "flake-utils": "flake-utils_3",
-        "nixpkgs": [
-          "crypto3",
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1717519917,
-        "narHash": "sha256-GqzEqEW4Uz9Z7uDZwers0t9seWRNbRWPNE3OJnjE1Uw=",
-        "owner": "NilFoundation",
-        "repo": "nix-3rdparty",
-        "rev": "a2e45429aa25a4a6e8e362ef17df6f197312f224",
-        "type": "github"
-      },
-      "original": {
-        "owner": "NilFoundation",
-        "repo": "nix-3rdparty",
-        "type": "github"
-      }
-    },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1718229064,
-        "narHash": "sha256-ZFav8A9zPNfjZg/wrxh1uZeMJHELRfRgFP+meq01XYk=",
+        "lastModified": 1718811006,
+        "narHash": "sha256-0Y8IrGhRmBmT7HHXlxxepg2t8j1X90++qRN3lukGaIk=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "5c2ec3a5c2ee9909904f860dadc19bc12cd9cc44",
+        "rev": "03d771e513ce90147b65fe922d87d3a0356fc125",
         "type": "github"
       },
       "original": {
@@ -161,17 +97,19 @@
     },
     "parallel-crypto3": {
       "inputs": {
-        "crypto3": "crypto3_2",
+        "crypto3": [
+          "crypto3"
+        ],
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1718118401,
-        "narHash": "sha256-kolMdkaNrpys9YfcGnv7AJCdYwkvoULY9bXzwW71dXU=",
+        "lastModified": 1718893869,
+        "narHash": "sha256-nAkV6ZeSN+VQComML13JBO65FDXTI9NK/EneZAfC/z8=",
         "ref": "refs/heads/master",
-        "rev": "3751752653fc4f0e0079d35e7bd5de0b04be8b4a",
-        "revCount": 1440,
+        "rev": "bb57c9ddd8d105cae2a455c1085cb9f1f08c5bed",
+        "revCount": 1444,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/NilFoundation/parallel-crypto3"
@@ -206,21 +144,6 @@
       }
     },
     "systems_2": {
-      "locked": {
-        "lastModified": 1681028828,
-        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
-        "owner": "nix-systems",
-        "repo": "default",
-        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-systems",
-        "repo": "default",
-        "type": "github"
-      }
-    },
-    "systems_3": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
