@@ -124,13 +124,9 @@ jobs:
           done
           echo "run-id=${run_id}" >> $GITHUB_OUTPUT
 
-
-  # This is copied from reusable-generate-proofs-linux.yml
-  # Disgusting duplication, we should better move all preparation and build to nix, then
-  #   make testing steps a composite action.
   build-and-generate-proofs:
     name: Build prover, generate proofs for circuits
-    runs-on: [self-hosted, Linux, X64, aws_autoscaling]
+    runs-on: ubuntu-22.04
     needs:
       - handle-syncwith
       - get-zkllvm-run
@@ -144,11 +140,7 @@ jobs:
       artifact-name: ${{ steps.artifact-name.outputs.merged }}
 
     steps:
-      # https://github.com/actions/checkout/issues/1552
-      - name: Clean up after previous checkout
-        run: chmod +w -R ${GITHUB_WORKSPACE}; rm -rf ${GITHUB_WORKSPACE}/*;
-
-      - name: Checkout Crypto3
+      - name: Checkout Proof Producer
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -164,21 +156,15 @@ jobs:
             !${{ github.workspace }}/
             !${{ github.workspace }}/**/.git/**
 
-      # - name: Run clang-format
-      #   run: |
-      #     if find bin -iname '*.cpp' -o -iname '*.hpp' | xargs clang-format -n --Werror; then
-      #       echo "Code formatting is correct"
-      #     else
-      #       echo "Code formatting differs from clang-format's expectations, run 'find bin -iname *.hpp -o -iname *.cpp | xargs clang-format -i'"
-      #       exit 1
-      #     fi
+      - uses: cachix/install-nix-action@v27
+      - uses: DeterminateSystems/magic-nix-cache-action@v7
 
       - name: Run checks
-        run: nix -L build .?submodules=1
-        # env:
-        #   NIX_CONFIG: |
-        #     cores = 6
-        #     max-jobs = 4
+        run: nix -L build '.?submodules=1#'
+        env:
+          NIX_CONFIG: |
+            cores = 2
+            max-jobs = 1
 
       - name: Set usefull strings
         id: strings

@@ -9,8 +9,8 @@
     };
     parallel-crypto3 = {
       url = "git+https://github.com/NilFoundation/parallel-crypto3?submodules=1";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.crypto3.follows = "crypto3";
+      # inputs.nixpkgs.follows = "nixpkgs";
+      # inputs.crypto3.follows = "crypto3";
     };
     flake-utils.url = "github:numtide/flake-utils";
   };
