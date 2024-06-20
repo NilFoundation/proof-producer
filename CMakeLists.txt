@@ -45,14 +45,6 @@ if(ENABLE_TESTS)
 endif()
 
 # EXCLUDE_FROM_ALL is needed so crypto3 and other headers won't be installed
-# add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/crypto3" EXCLUDE_FROM_ALL)
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/module" EXCLUDE_FROM_ALL)
-
-# add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/container" EXCLUDE_FROM_ALL)
-# add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/core" EXCLUDE_FROM_ALL)
-# add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/math" EXCLUDE_FROM_ALL)
-# add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/actor/zk" EXCLUDE_FROM_ALL)
-
 add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/libs/transpiler" EXCLUDE_FROM_ALL)
 
 # Read version from VERSION file
