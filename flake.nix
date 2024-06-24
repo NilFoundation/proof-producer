@@ -9,8 +9,8 @@
     };
     parallel-crypto3 = {
       url = "git+https://github.com/NilFoundation/parallel-crypto3?submodules=1";
-      # inputs.nixpkgs.follows = "nixpkgs";
-      # inputs.crypto3.follows = "crypto3";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.crypto3.follows = "crypto3";
     };
     flake-utils.url = "github:numtide/flake-utils";
   };
@@ -21,38 +21,53 @@
         pkgs = import nixpkgs {
           inherit system;
         };
-        proof-producer = pkgs.stdenv.mkDerivation {
-          name = "proof-producer";
-          src = self;
 
-          buildInputs = with pkgs; [
-            cmake
-            ninja
-            pkg-config
-            crypto3.packages.${system}.default
-            parallel-crypto3.packages.${system}.default
-          ];
+        proof-producer = { custom-boost ? null } :
+          let
+            crypto3-boost = pkgs.boost183; # used for removing original boost from crypto3 packages
+            crypto3-with-custom-boost = crypto3.packages.${system}.default.overrideAttrs (oldAttrs: {
+              propagatedBuildInputs = [ custom-boost ] ++ (nixpkgs.lib.filter (input: input != crypto3-boost) oldAttrs.propagatedBuildInputs);
+            });
+            parallel-crypto3-with-custom-boost = parallel-crypto3.packages.${system}.default.overrideAttrs (oldAttrs: {
+              propagatedBuildInputs = [ custom-boost ] ++ (nixpkgs.lib.filter (input: input != crypto3-boost) oldAttrs.propagatedBuildInputs);
+            });
+          in
+            pkgs.stdenv.mkDerivation {
+              name = "proof-producer";
+              src = self;
 
-          cmakeFlags = [
-            "-DCMAKE_BUILD_TYPE=Release"
-            "-DCMAKE_INSTALL_PREFIX=${placeholder "out"}"
-          ];
+              buildInputs = with pkgs; [
+                cmake
+                ninja
+                pkg-config
+                (if custom-boost == null then crypto3.packages.${system}.default else crypto3-with-custom-boost)
+                (if custom-boost == null then parallel-crypto3.packages.${system}.default else parallel-crypto3-with-custom-boost)
+              ];
 
-          doCheck = false; # tests are inside crypto3-tests derivation
+              cmakeFlags = [
+                "-DCMAKE_BUILD_TYPE=Release"
+                "-DCMAKE_INSTALL_PREFIX=${placeholder "out"}"
+              ];
 
-          installPhase = ''
-            cmake --build . --target install
-          '';
-        };
+              doCheck = false; # tests are inside crypto3-tests derivation
+
+              installPhase = ''
+                cmake --build . --target install
+              '';
+            };
       in {
-        packages.default = proof-producer;
-        apps.default = {
+        packages.default = proof-producer{ custom-boost = pkgs.boost180; };
+        apps.non-working = {
           type = "app";
-          program = "${proof-producer}/bin/proof-producer-multi-threaded";
+          program = "${proof-producer{}}/bin/proof-producer-single-threaded";
         };
         apps.single-threaded = {
           type = "app";
-          program = "${proof-producer}/bin/proof-producer-single-threaded";
+          program = "${proof-producer{ custom-boost = pkgs.boost180; }}/bin/proof-producer-single-threaded";
+        };
+        apps.default = {
+          type = "app";
+          program = "${proof-producer{ custom-boost = pkgs.boost180; }}/bin/proof-producer-single-threaded";
         };
       }
     );
