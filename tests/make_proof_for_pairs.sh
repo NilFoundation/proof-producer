@@ -15,9 +15,9 @@ make_proof_for_pair() {
 
     local proof_generator_binary
     if [ "$use_nix" = true ]; then
-        proof_generator_binary="nix run .?submodules=1#single-threaded --"
+        proof_generator_binary="nix run ${script_dir}/..?submodules=1#single-threaded --"
         if [ "$use_multithreaded" = true ]; then
-            proof_generator_binary=" nix run .?submodules=1 --"
+            proof_generator_binary="nix run ${script_dir}/..?submodules=1 --"
         fi
     else
         proof_generator_binary="${script_dir}/../build/bin/proof-generator/proof-generator-single-threaded"
