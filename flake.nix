@@ -35,6 +35,7 @@
             pkgs.stdenv.mkDerivation {
               name = "proof-producer";
               src = self;
+              dontStrip = true;  # Do not strip debug symbols
 
               buildInputs = with pkgs; [
                 cmake
@@ -45,7 +46,7 @@
               ];
 
               cmakeFlags = [
-                "-DCMAKE_BUILD_TYPE=Release"
+                "-DCMAKE_BUILD_TYPE=Debug"
                 "-DCMAKE_INSTALL_PREFIX=${placeholder "out"}"
               ];
 
@@ -57,7 +58,8 @@
             };
       in {
         packages.default = proof-producer{ custom-boost = pkgs.boost180; };
-        apps.non-working = {
+        packages.non-working = proof-producer{};
+        apps.not-working = {
           type = "app";
           program = "${proof-producer{}}/bin/proof-producer-single-threaded";
         };
@@ -67,7 +69,7 @@
         };
         apps.default = {
           type = "app";
-          program = "${proof-producer{ custom-boost = pkgs.boost180; }}/bin/proof-producer-single-threaded";
+          program = "${proof-producer{ custom-boost = pkgs.boost180; }}/bin/proof-producer-multi-threaded";
         };
       }
     );
