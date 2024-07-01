@@ -13,9 +13,17 @@ make_proof_for_pair() {
     local relative_tbl_path="$(realpath --relative-to="$base_dir" "$tbl_file")"
     local proof_dir="${output_dir}/$(dirname ${relative_tbl_path})"
 
-    local proof_generator_binary="${script_dir}/../build/bin/proof-generator/proof-generator-single-threaded"
-    if [ "$use_multithreaded" = true ]; then
-        proof_generator_binary="${script_dir}/../build/bin/proof-generator/proof-generator-multi-threaded"
+    local proof_generator_binary
+    if [ "$use_nix" = true ]; then
+        proof_generator_binary="nix run ${script_dir}/..?submodules=1#single-threaded --"
+        if [ "$use_multithreaded" = true ]; then
+            proof_generator_binary="nix run ${script_dir}/..?submodules=1 --"
+        fi
+    else
+        proof_generator_binary="${script_dir}/../build/bin/proof-generator/proof-generator-single-threaded"
+        if [ "$use_multithreaded" = true ]; then
+            proof_generator_binary="${script_dir}/../build/bin/proof-generator/proof-generator-multi-threaded"
+        fi
     fi
 
     if [ -f "$crct_file" ]; then
@@ -42,6 +50,7 @@ parse_args() {
     base_dir="."
     output_dir=""
     use_multithreaded=false
+    use_nix=false
     args_to_forward=()
     targets=()
 
@@ -57,6 +66,10 @@ parse_args() {
                 ;;
             --multithreaded)
                 use_multithreaded=true
+                shift
+                ;;
+            --use-nix)
+                use_nix=true
                 shift
                 ;;
             --)
