@@ -15,7 +15,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  BOOST_VERSION: "1.80.0"
   CAA_ARTIFACT_NAME: circuits-and-assignments
   TO_ARTIFACT_NAME: transpiler-output
   INTEGRATION_TESTING_TARGETS: |
@@ -126,7 +125,7 @@ jobs:
 
   build-and-generate-proofs:
     name: Build prover, generate proofs for circuits
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, Linux, X64, aws_autoscaling]
     needs:
       - handle-syncwith
       - get-zkllvm-run
@@ -140,6 +139,10 @@ jobs:
       artifact-name: ${{ steps.artifact-name.outputs.merged }}
 
     steps:
+      # https://github.com/actions/checkout/issues/1552
+      - name: Clean up after previous checkout
+        run: chmod +w -R ${GITHUB_WORKSPACE}; rm -rf ${GITHUB_WORKSPACE}/*;
+
       - name: Checkout Proof Producer
         uses: actions/checkout@v4
         with:
@@ -155,9 +158,6 @@ jobs:
             ${{ github.workspace }}/**
             !${{ github.workspace }}/
             !${{ github.workspace }}/**/.git/**
-
-      - uses: cachix/install-nix-action@v27
-      - uses: DeterminateSystems/magic-nix-cache-action@v7
 
       - name: Run checks
         run: nix -L build '.?submodules=1#'
@@ -194,7 +194,7 @@ jobs:
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
         run: |
           extra_args=""
-          if [[ "true" == "false" ]]; then
+          if [[ "true" == "true" ]]; then
             extra_args="--multithreaded "
           fi
           targets_str=$(echo "${{ needs.prepare-targets.outputs.prover-targets }}" | awk '{$1=$1};1' | sed '/^$/d' | tr '\n' ' ' | sed 's/ $//')
