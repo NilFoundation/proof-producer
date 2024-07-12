@@ -22,10 +22,10 @@
           inherit system;
         };
 
-        proof-producer = { custom-boost ? null } :
+        proof-producer = { custom-boost ? null, enableDebug ? false } :
           let
             crypto3-boost = pkgs.boost183; # used for removing original boost from crypto3 packages
-            crypto3-with-custom-boost = crypto3.packages.${system}.default.overrideAttrs (oldAttrs: {
+            crypto3-with-custom-boost = crypto3.packages.${system}.crypto3.overrideAttrs (oldAttrs: {
               propagatedBuildInputs = [ custom-boost ] ++ (nixpkgs.lib.filter (input: input != crypto3-boost) oldAttrs.propagatedBuildInputs);
             });
             parallel-crypto3-with-custom-boost = parallel-crypto3.packages.${system}.default.overrideAttrs (oldAttrs: {
@@ -41,7 +41,7 @@
                 cmake
                 ninja
                 pkg-config
-                (if custom-boost == null then crypto3.packages.${system}.default else crypto3-with-custom-boost)
+                (if custom-boost == null then crypto3.packages.${system}.crypto3 else crypto3-with-custom-boost)
                 (if custom-boost == null then parallel-crypto3.packages.${system}.default else parallel-crypto3-with-custom-boost)
               ];
 
@@ -55,8 +55,9 @@
               '';
 
               cmakeFlags = [
-                "-DCMAKE_BUILD_TYPE=Debug"
                 "-DCMAKE_INSTALL_PREFIX=${placeholder "out"}"
+                (if enableDebug then "-DCMAKE_BUILD_TYPE=Debug" else "-DCMAKE_BUILD_TYPE=Release")
+                (if enableDebug then "-DZK_PLACEHOLDER_DEBUG_ENABLED=1 -DCMAKE_CXX_FLAGS=-ggdb -DCMAKE_CXX_FLAGS=-O0" else "")
               ];
 
               doCheck = false; # tests are inside crypto3-tests derivation
