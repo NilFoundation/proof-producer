@@ -35,7 +35,7 @@
             pkgs.stdenv.mkDerivation {
               name = "proof-producer";
               src = self;
-              dontStrip = true;  # Do not strip debug symbols
+              dontStrip = enableDebug;  # Do not strip debug symbols
 
               buildInputs = with pkgs; [
                 cmake
@@ -44,6 +44,15 @@
                 (if custom-boost == null then crypto3.packages.${system}.default else crypto3-with-custom-boost)
                 (if custom-boost == null then parallel-crypto3.packages.${system}.default else parallel-crypto3-with-custom-boost)
               ];
+
+              # HACK: nix put `-isystem /path/to/include` for each include dir from inputs.
+              #   This leads to CMake not adding `-i` options to build command. And this
+              #   beahvior doesn't let us to replace crypto3 with parallel-crypto3, since
+              #   their order is set by nix. Just remove every `-isystem ...` arg from this env.
+              #   Related ticket: https://github.com/NixOS/nixpkgs/issues/79303
+              preConfigure = ''
+                export NIX_CFLAGS_COMPILE=$(echo "$NIX_CFLAGS_COMPILE" | sed -e 's|-isystem [^ ]*||g')
+              '';
 
               cmakeFlags = [
                 "-DCMAKE_BUILD_TYPE=Debug"
@@ -58,11 +67,6 @@
             };
       in {
         packages.default = proof-producer{};
-        packages.non-working = proof-producer{};
-        apps.not-working = {
-          type = "app";
-          program = "${proof-producer{}}/bin/proof-producer-single-threaded";
-        };
         apps.single-threaded = {
           type = "app";
           program = "${proof-producer{}}/bin/proof-producer-single-threaded";
