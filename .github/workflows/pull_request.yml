@@ -102,12 +102,12 @@ jobs:
             echo "Considering reference ${zkllvm_ref} a branch"
             branch=${zkllvm_ref#refs/heads/}
             # We can already fetch run_id here, but better fit to common approach with extra query by sha
-            sha=$(gh api "repos/${zkllvm_repo}/actions/workflows/build_linux.yml/runs?branch=${branch}&status=completed&per_page=1" \
+            sha=$(gh api "repos/${zkllvm_repo}/actions/workflows/nix_build_linux.yml/runs?branch=${branch}&status=completed&per_page=1" \
               --jq '.workflow_runs[0].head_sha')
           fi
 
           echo "Using head sha: ${sha}"
-          run_id=$(gh api "repos/${zkllvm_repo}/actions/workflows/build_linux.yml/runs?head_sha=${sha}&status=completed&per_page=1" \
+          run_id=$(gh api "repos/${zkllvm_repo}/actions/workflows/nix_build_linux.yml/runs?head_sha=${sha}&status=completed&per_page=1" \
               --jq '.workflow_runs[0].id')
           if [ -z "${run_id}" ]; then
             echo no run ID fetched
@@ -184,7 +184,7 @@ jobs:
       - name: Extract circuits and assignments artifact
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
         run: |
-          unzip ${{ env.CAA_ARTIFACT_NAME }}.zip
+          unzip -o ${{ env.CAA_ARTIFACT_NAME }}.zip
 
       - name: List artifacts
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
