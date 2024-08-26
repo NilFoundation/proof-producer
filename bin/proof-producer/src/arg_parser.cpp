@@ -72,20 +72,24 @@ namespace nil {
             );
             // clang-format off
             auto options_appender = config.add_options()
-                ("proof,p", make_defaulted_option(prover_options.proof_file_path), "Output proof file")
+                ("stage", make_defaulted_option(prover_options.stage),
+                 "Stage of the prover to run, one of (all, preprocess, prove, verify). Defaults to 'all'.")
+                ("proof,p", make_defaulted_option(prover_options.proof_file_path), "Proof file")
                 ("json,j", make_defaulted_option(prover_options.json_file_path), "JSON proof file")
-                ("common-data,d", make_defaulted_option(prover_options.preprocessed_common_data_path), "Output preprocessed common data file")
-                ("circuit", po::value(&prover_options.circuit_file_path)->required(), "Circuit input file")
-                ("assignment-table,t", po::value(&prover_options.assignment_table_file_path)->required(), "Assignment table input file")
+                ("common-data", make_defaulted_option(prover_options.preprocessed_common_data_path), "Preprocessed common data file")
+                ("preprocessed-data", make_defaulted_option(prover_options.preprocessed_public_data_path), "Preprocessed public data file")
+                ("commitment-state-file", make_defaulted_option(prover_options.commitment_scheme_state_path), "Commitment state data file")
+                ("circuit", po::value(&prover_options.circuit_file_path), "Circuit input file")
+                ("assignment-table,t", po::value(&prover_options.assignment_table_file_path), "Assignment table input file")
+                ("assignment-description-file", po::value(&prover_options.assignment_description_file_path), "Assignment description file")
                 ("log-level,l", make_defaulted_option(prover_options.log_level), "Log level (trace, debug, info, warning, error, fatal)")
                 ("elliptic-curve-type,e", make_defaulted_option(prover_options.elliptic_curve_type), "Elliptic curve type (pallas)")
                 ("hash-type", make_defaulted_option(prover_options.hash_type), "Hash type (keccak, poseidon, sha256)")
                 ("lambda-param", make_defaulted_option(prover_options.lambda), "Lambda param (9)")
                 ("grind-param", make_defaulted_option(prover_options.grind), "Grind param (69)")
                 ("expand-factor,x", make_defaulted_option(prover_options.expand_factor), "Expand factor")
-                ("max-quotient-chunks,q", make_defaulted_option(prover_options.max_quotient_chunks), "Maximum quotient polynomial parts amount")
-                ("skip-verification", po::bool_switch(&prover_options.skip_verification), "Skip generated proof verifying step")
-                ("verification-only", po::bool_switch(&prover_options.verification_only), "Read proof for verification instead of writing to it");
+                ("max-quotient-chunks,q", make_defaulted_option(prover_options.max_quotient_chunks), "Maximum quotient polynomial parts amount");
+
             // clang-format on
             po::options_description cmdline_options("nil; Proof Producer");
             cmdline_options.add(generic).add(config);
