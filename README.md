@@ -57,3 +57,29 @@ proof-generator --circuit <circuit-file> --assignment <assignment-file> --proof 
     cmake ..
     make -j $(nrpoc)
     ```
+
+# Sample calls to proof-producer
+
+In all the calls you can change the executable name from proof-producer-single-threaded to proof-producer-multi-threaded to run on all the CPUs of your machine.
+
+Generate a proof and verify it:
+```bash
+./build/bin/proof-producer/proof-producer-single-threaded --circuit="circuit.crct" --assignment-table="assignment.tbl" --proof="proof.bin" -q 10
+```
+
+Making a call to preprocessor:
+
+```bash
+./build/bin/proof-producer/proof-producer-single-threaded --stage="preprocess" --circuit="circuit.crct" --assignment-table="assignment.tbl" --common-data="preprocessed_common_data.dat" --preprocessed-data="preprocessed.dat" --commitment-state-file="commitment_state.dat" --assignment-description-file="assignment-description.dat" -q 10
+```
+
+Making a call to prover:
+
+```bash
+./build/bin/proof-producer/proof-producer-single-threaded --stage="prove" --circuit="circuit.crct" --assignment-table="assignment.tbl" --common-data="preprocessed_common_data.dat" --preprocessed-data="preprocessed.dat" --commitment-state-file="commitment_state.dat" --proof="proof.bin" -q 10
+```
+
+Verify generated proof:
+```bash
+./build/bin/proof-producer/proof-producer-single-threaded --stage="verify" --circuit="circuit.crct" --common-data="preprocessed_common_data.dat" --proof="proof.bin" --assignment-description-file="assignment-description.dat" -q 10
+```

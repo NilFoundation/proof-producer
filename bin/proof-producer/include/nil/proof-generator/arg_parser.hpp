@@ -34,14 +34,16 @@ namespace nil {
             typename tuple_to_variant<typename transform_tuple<HashTypes, to_type_identity>::type>::type;
 
         struct ProverOptions {
+            std::string stage = "all";
             boost::filesystem::path proof_file_path = "proof.bin";
             boost::filesystem::path json_file_path = "proof.json";
             boost::filesystem::path preprocessed_common_data_path = "preprocessed_common_data.dat";
+            boost::filesystem::path preprocessed_public_data_path = "preprocessed_data.dat";
+            boost::filesystem::path commitment_scheme_state_path = "commitment_scheme_state.dat";
             boost::filesystem::path circuit_file_path;
             boost::filesystem::path assignment_table_file_path;
+            boost::filesystem::path assignment_description_file_path;
             boost::log::trivial::severity_level log_level = boost::log::trivial::severity_level::info;
-            bool skip_verification = false;
-            bool verification_only = false;
             CurvesVariant elliptic_curve_type = type_identity<nil::crypto3::algebra::curves::pallas>{};
             HashesVariant hash_type = type_identity<nil::crypto3::hashes::keccak_1600<256>>{};
 

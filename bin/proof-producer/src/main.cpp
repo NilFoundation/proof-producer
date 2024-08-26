@@ -33,11 +33,6 @@ template<typename CurveType, typename HashType>
 int run_prover(const nil::proof_generator::ProverOptions& prover_options) {
     auto prover_task = [&] {
         auto prover = nil::proof_generator::Prover<CurveType, HashType>(
-            prover_options.circuit_file_path,
-            prover_options.preprocessed_common_data_path,
-            prover_options.assignment_table_file_path,
-            prover_options.proof_file_path,
-            prover_options.json_file_path,
             prover_options.lambda,
             prover_options.expand_factor,
             prover_options.max_quotient_chunks,
@@ -45,9 +40,52 @@ int run_prover(const nil::proof_generator::ProverOptions& prover_options) {
         );
         bool prover_result;
         try {
-            prover_result = prover_options.verification_only ? prover.verify_from_file()
-                                                             : prover.generate_to_file(prover_options.skip_verification)
-                    && prover.save_preprocessed_common_data_to_file();
+            switch (nil::proof_generator::detail::prover_stage_from_string(prover_options.stage)) {
+                case nil::proof_generator::detail::ProverStage::ALL:
+                    prover_result = 
+                        prover.read_circuit(prover_options.circuit_file_path) &&
+                        prover.read_assignment_table(prover_options.assignment_table_file_path) &&
+                        prover.preprocess_public_data() &&
+                        prover.preprocess_private_data() &&
+                        prover.generate_to_file(
+                            prover_options.proof_file_path, 
+                            prover_options.json_file_path,
+                            false/*don't skip verification*/) && 
+                        prover.save_preprocessed_common_data_to_file(prover_options.preprocessed_common_data_path) &&
+                        prover.save_public_preprocessed_data_to_file(prover_options.preprocessed_public_data_path) &&
+                        prover.save_commitment_state_to_file(prover_options.commitment_scheme_state_path);
+                    break;
+                case nil::proof_generator::detail::ProverStage::PREPROCESS:
+                    prover_result = 
+                        prover.read_circuit(prover_options.circuit_file_path) &&
+                        prover.read_assignment_table(prover_options.assignment_table_file_path) &&
+                        prover.save_assignment_description(prover_options.assignment_description_file_path) &&
+                        prover.preprocess_public_data() &&
+                        prover.save_preprocessed_common_data_to_file(prover_options.preprocessed_common_data_path) &&
+                        prover.save_public_preprocessed_data_to_file(prover_options.preprocessed_public_data_path) &&
+                        prover.save_commitment_state_to_file(prover_options.commitment_scheme_state_path);
+                    break;
+                case nil::proof_generator::detail::ProverStage::PROVE:
+                    // Load preprocessed data from file and generate the proof.
+                    prover_result =
+                        prover.read_circuit(prover_options.circuit_file_path) &&
+                        prover.read_assignment_table(prover_options.assignment_table_file_path) &&
+                        prover.read_public_preprocessed_data_from_file(prover_options.preprocessed_public_data_path) &&
+                        prover.read_commitment_scheme_from_file(prover_options.commitment_scheme_state_path) &&
+                        prover.preprocess_private_data() && 
+                        prover.generate_to_file(
+                            prover_options.proof_file_path,
+                            prover_options.json_file_path,
+                            true/*skip verification*/);
+                    break;
+                case nil::proof_generator::detail::ProverStage::VERIFY:
+                    prover_result = 
+                        prover.read_circuit(prover_options.circuit_file_path) &&
+                        prover.read_preprocessed_common_data_from_file(prover_options.preprocessed_common_data_path) &&
+                        prover.read_assignment_description(prover_options.assignment_description_file_path) &&
+                        prover.verify_from_file(prover_options.proof_file_path);
+                    break;
+            } 
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(error) << e.what();
             return 1;

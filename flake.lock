@@ -9,11 +9,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1721325480,
-        "narHash": "sha256-ZyPvRjfeLVswifsbmoUm2LIcrqIaXR4wQmA0XdpEv6g=",
+        "lastModified": 1726125910,
+        "narHash": "sha256-AgwapAsC6l4Guf8XFpS8quOm6jd9Mo2w4btaaXAkYwU=",
         "ref": "refs/heads/master",
-        "rev": "45074e0549d46b8fa67a844111c52277134a0272",
-        "revCount": 9160,
+        "rev": "246955ad06f9f1bf4bbb75ed2870cca5df331fa7",
+        "revCount": 10454,
         "type": "git",
         "url": "https://github.com/NilFoundation/crypto3"
       },
@@ -58,6 +58,24 @@
         "type": "github"
       }
     },
+    "flake-utils_3": {
+      "inputs": {
+        "systems": "systems_3"
+      },
+      "locked": {
+        "lastModified": 1710146030,
+        "narHash": "sha256-SZ5L6eA7HJ/nmkzGG7/ISclqe6oZdOZTNoesiInkXPQ=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "b1d9ab70662946ef0850d488da1c9019f3a9752a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "nix-3rdparty": {
       "inputs": {
         "flake-utils": [
@@ -75,6 +93,31 @@
         "owner": "NilFoundation",
         "repo": "nix-3rdparty",
         "rev": "a2e45429aa25a4a6e8e362ef17df6f197312f224",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NilFoundation",
+        "repo": "nix-3rdparty",
+        "type": "github"
+      }
+    },
+    "nix-3rdparty_2": {
+      "inputs": {
+        "flake-utils": [
+          "parallel-crypto3",
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "parallel-crypto3",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1721822436,
+        "narHash": "sha256-AQidmv80fA72FFHgyjCq9Psc04w9aaHedJpoVgnLb6M=",
+        "owner": "NilFoundation",
+        "repo": "nix-3rdparty",
+        "rev": "d14a2a3c4b9498b297400b225fc09570bfe0a9a1",
         "type": "github"
       },
       "original": {
@@ -104,16 +147,18 @@
         "crypto3": [
           "crypto3"
         ],
+        "flake-utils": "flake-utils_3",
+        "nix-3rdparty": "nix-3rdparty_2",
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1721378514,
-        "narHash": "sha256-3XRkqdZRe26YDBPWFZmpVqyFQeqPmDczx5AaaY3FRTQ=",
+        "lastModified": 1726133783,
+        "narHash": "sha256-yCn5iYTgREHxHx4qajl7E/1BOEu6ToKAxeJz2XNnnSk=",
         "ref": "refs/heads/master",
-        "rev": "404077b3f00f8c901cfad95c8c6c116eb172b8e2",
-        "revCount": 1460,
+        "rev": "07f03019fd0467716c419692a309bca0e8b9718a",
+        "revCount": 1466,
         "submodules": true,
         "type": "git",
         "url": "https://github.com/NilFoundation/parallel-crypto3"
@@ -148,6 +193,21 @@
       }
     },
     "systems_2": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "systems_3": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
