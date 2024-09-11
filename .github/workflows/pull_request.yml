@@ -170,6 +170,7 @@ jobs:
         id: strings
         run: |
           echo "artifact-dir=$(realpath ${{ github.workspace }}/../artifacts)" >> $GITHUB_OUTPUT
+          echo "artifact-dir=$(realpath ${{ github.workspace }}/../artifacts)"
 
       - name: Download circuits and assignments artifact
         uses: dawidd6/action-download-artifact@v3
