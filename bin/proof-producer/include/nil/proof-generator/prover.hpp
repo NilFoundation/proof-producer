@@ -50,6 +50,7 @@
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/proof.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/prover.hpp>
 #include <nil/crypto3/zk/snark/systems/plonk/placeholder/verifier.hpp>
+#include <nil/crypto3/zk/transcript/fiat_shamir.hpp>
 
 #include <nil/blueprint/transpiler/recursive_verifier_generator.hpp>
 
@@ -102,7 +103,8 @@ namespace nil {
                 ALL = 0,
                 PREPROCESS = 1,
                 PROVE = 2,
-                VERIFY = 3
+                VERIFY = 3,
+                GENERATE_AGGREGATED_CHALLENGE = 4
             };
 
             ProverStage prover_stage_from_string(const std::string& stage) {
@@ -110,7 +112,8 @@ namespace nil {
                     {"all", ProverStage::ALL},
                     {"preprocess", ProverStage::PREPROCESS},
                     {"prove", ProverStage::PROVE},
-                    {"verify", ProverStage::VERIFY}
+                    {"verify", ProverStage::VERIFY},
+                    {"generate-aggregated-challenge", ProverStage::GENERATE_AGGREGATED_CHALLENGE}
                 };
                 auto it = stage_map.find(stage);
                 if (it == stage_map.end()) {
@@ -276,12 +279,12 @@ namespace nil {
                 return true;
             }
 
-            // This includes not only the common data, but also merkle trees, polynomials, etc, everything that a 
+            // This includes not only the common data, but also merkle trees, polynomials, etc, everything that a
             // public preprocessor generates.
             bool save_public_preprocessed_data_to_file(boost::filesystem::path preprocessed_data_file) {
                 using namespace nil::crypto3::marshalling::types;
 
-                BOOST_LOG_TRIVIAL(info) << "Writing all preprocessed public data to " << 
+                BOOST_LOG_TRIVIAL(info) << "Writing all preprocessed public data to " <<
                     preprocessed_data_file << std::endl;
                 using PreprocessedPublicDataType = typename PublicPreprocessedData::preprocessed_data_type;
 
@@ -322,7 +325,7 @@ namespace nil {
             bool save_commitment_state_to_file(boost::filesystem::path commitment_scheme_state_file) {
                 using namespace nil::crypto3::marshalling::types;
 
-                BOOST_LOG_TRIVIAL(info) << "Writing commitment_state to " << 
+                BOOST_LOG_TRIVIAL(info) << "Writing commitment_state to " <<
                     commitment_scheme_state_file << std::endl;
 
                 auto marshalled_lpc_state = fill_commitment_scheme<Endianness, LpcScheme>(
@@ -415,7 +418,7 @@ namespace nil {
 
                 auto marshalled_assignment_description =
                     nil::crypto3::marshalling::types::fill_assignment_table_description<Endianness, BlueprintField>(
-                        *table_description_     
+                        *table_description_
                     );
                 bool res = nil::proof_generator::detail::encode_marshalling_to_file(
                     assignment_description_file,
@@ -483,6 +486,49 @@ namespace nil {
                 assignment_table_.reset();
 
                 return true;
+            }
+
+            bool generate_aggregated_challenge_to_file(
+                const std::vector<boost::filesystem::path> &aggregate_input_files,
+                const boost::filesystem::path &aggregated_challenge_file
+            ) {
+                if (aggregate_input_files.empty()) {
+                    BOOST_LOG_TRIVIAL(error) << "No input files for challenge aggregation";
+                    return false;
+                }
+                BOOST_LOG_TRIVIAL(info) << "Generating aggregated challenge to " << aggregated_challenge_file;
+                // check that we can access all input files
+                for (const auto &input_file : aggregate_input_files) {
+                    BOOST_LOG_TRIVIAL(info) << "Reading challenge from " << input_file;
+                    if (!nil::proof_generator::can_read_from_file(input_file.string())) {
+                        BOOST_LOG_TRIVIAL(error) << "Can't read file " << input_file;
+                        return false;
+                    }
+                }
+                // create the transcript
+                using transcript_hash_type = typename PlaceholderParams::transcript_hash_type;
+                using transcript_type = crypto3::zk::transcript::fiat_shamir_heuristic_sequential<transcript_hash_type>;
+                using challenge_marshalling_type =
+                    nil::crypto3::marshalling::types::field_element<
+                        TTypeBase, typename BlueprintField::value_type>;
+                transcript_type transcript;
+                // read challenges from input files and add them to the transcript
+                for (const auto &input_file : aggregate_input_files) {
+                    auto challenge = detail::decode_marshalling_from_file<challenge_marshalling_type>(input_file);
+                    if (!challenge) {
+                        BOOST_LOG_TRIVIAL(error) << "Failed to read challenge from " << input_file;
+                        return false;
+                    }
+                    transcript(challenge->value());
+                }
+                // produce the aggregated challenge
+                auto output_challenge = transcript.template challenge<BlueprintField>();
+                // marshall the challenge
+                challenge_marshalling_type marshalled_challenge(output_challenge);
+                // write the challenge to the output file
+                BOOST_LOG_TRIVIAL(info) << "Writing aggregated challenge to " << aggregated_challenge_file;
+                return detail::encode_marshalling_to_file<challenge_marshalling_type>
+                    (aggregated_challenge_file, marshalled_challenge);
             }
 
         private:

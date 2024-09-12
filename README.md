@@ -83,3 +83,8 @@ Verify generated proof:
 ```bash
 ./build/bin/proof-producer/proof-producer-single-threaded --stage="verify" --circuit="circuit.crct" --common-data="preprocessed_common_data.dat" --proof="proof.bin" --assignment-description-file="assignment-description.dat" -q 10
 ```
+
+Aggregate challenges
+```bash
+./build/bin/proof-producer/proof-producer-single-threaded --stage="generate-aggregated-challenge" --input-challenge-files challenge1.dat challenge2.dat --aggregated-challenge-file="aggregated_challenge.dat"
+```

@@ -42,21 +42,21 @@ int run_prover(const nil::proof_generator::ProverOptions& prover_options) {
         try {
             switch (nil::proof_generator::detail::prover_stage_from_string(prover_options.stage)) {
                 case nil::proof_generator::detail::ProverStage::ALL:
-                    prover_result = 
+                    prover_result =
                         prover.read_circuit(prover_options.circuit_file_path) &&
                         prover.read_assignment_table(prover_options.assignment_table_file_path) &&
                         prover.preprocess_public_data() &&
                         prover.preprocess_private_data() &&
                         prover.generate_to_file(
-                            prover_options.proof_file_path, 
+                            prover_options.proof_file_path,
                             prover_options.json_file_path,
-                            false/*don't skip verification*/) && 
+                            false/*don't skip verification*/) &&
                         prover.save_preprocessed_common_data_to_file(prover_options.preprocessed_common_data_path) &&
                         prover.save_public_preprocessed_data_to_file(prover_options.preprocessed_public_data_path) &&
                         prover.save_commitment_state_to_file(prover_options.commitment_scheme_state_path);
                     break;
                 case nil::proof_generator::detail::ProverStage::PREPROCESS:
-                    prover_result = 
+                    prover_result =
                         prover.read_circuit(prover_options.circuit_file_path) &&
                         prover.read_assignment_table(prover_options.assignment_table_file_path) &&
                         prover.save_assignment_description(prover_options.assignment_description_file_path) &&
@@ -72,20 +72,26 @@ int run_prover(const nil::proof_generator::ProverOptions& prover_options) {
                         prover.read_assignment_table(prover_options.assignment_table_file_path) &&
                         prover.read_public_preprocessed_data_from_file(prover_options.preprocessed_public_data_path) &&
                         prover.read_commitment_scheme_from_file(prover_options.commitment_scheme_state_path) &&
-                        prover.preprocess_private_data() && 
+                        prover.preprocess_private_data() &&
                         prover.generate_to_file(
                             prover_options.proof_file_path,
                             prover_options.json_file_path,
                             true/*skip verification*/);
                     break;
                 case nil::proof_generator::detail::ProverStage::VERIFY:
-                    prover_result = 
+                    prover_result =
                         prover.read_circuit(prover_options.circuit_file_path) &&
                         prover.read_preprocessed_common_data_from_file(prover_options.preprocessed_common_data_path) &&
                         prover.read_assignment_description(prover_options.assignment_description_file_path) &&
                         prover.verify_from_file(prover_options.proof_file_path);
                     break;
-            } 
+                case nil::proof_generator::detail::ProverStage::GENERATE_AGGREGATED_CHALLENGE:
+                    prover_result =
+                        prover.generate_aggregated_challenge_to_file(
+                            prover_options.input_challenge_files,
+                            prover_options.aggregated_challenge_file
+                        );
+            }
         } catch (const std::exception& e) {
             BOOST_LOG_TRIVIAL(error) << e.what();
             return 1;
