@@ -43,6 +43,8 @@ namespace nil {
             boost::filesystem::path circuit_file_path;
             boost::filesystem::path assignment_table_file_path;
             boost::filesystem::path assignment_description_file_path;
+            std::vector<boost::filesystem::path> input_challenge_files;
+            boost::filesystem::path aggregated_challenge_file = "aggregated_challenge.dat";
             boost::log::trivial::severity_level log_level = boost::log::trivial::severity_level::info;
             CurvesVariant elliptic_curve_type = type_identity<nil::crypto3::algebra::curves::pallas>{};
             HashesVariant hash_type = type_identity<nil::crypto3::hashes::keccak_1600<256>>{};
