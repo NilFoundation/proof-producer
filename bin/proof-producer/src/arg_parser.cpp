@@ -73,7 +73,7 @@ namespace nil {
             // clang-format off
             auto options_appender = config.add_options()
                 ("stage", make_defaulted_option(prover_options.stage),
-                 "Stage of the prover to run, one of (all, preprocess, prove, verify). Defaults to 'all'.")
+                 "Stage of the prover to run, one of (all, preprocess, prove, verify, generate-aggregated-challenge). Defaults to 'all'.")
                 ("proof,p", make_defaulted_option(prover_options.proof_file_path), "Proof file")
                 ("json,j", make_defaulted_option(prover_options.json_file_path), "JSON proof file")
                 ("common-data", make_defaulted_option(prover_options.preprocessed_common_data_path), "Preprocessed common data file")
@@ -88,7 +88,11 @@ namespace nil {
                 ("lambda-param", make_defaulted_option(prover_options.lambda), "Lambda param (9)")
                 ("grind-param", make_defaulted_option(prover_options.grind), "Grind param (69)")
                 ("expand-factor,x", make_defaulted_option(prover_options.expand_factor), "Expand factor")
-                ("max-quotient-chunks,q", make_defaulted_option(prover_options.max_quotient_chunks), "Maximum quotient polynomial parts amount");
+                ("max-quotient-chunks,q", make_defaulted_option(prover_options.max_quotient_chunks), "Maximum quotient polynomial parts amount")
+                ("challenge-value-file,u", po::value<std::vector<boost::filesystem::path>>(&prover_options.challenge_value_files)->multitoken(),
+                 "Challenge value files. Used with 'generate-aggregated-challenge' stage.")
+                ("output-challenge-file", po::value<boost::filesystem::path>(&prover_options.output_challenge_file),
+                 "Output challenge file. Used with 'generate-aggregated-challenge' stage");
 
             // clang-format on
             po::options_description cmdline_options("nil; Proof Producer");
