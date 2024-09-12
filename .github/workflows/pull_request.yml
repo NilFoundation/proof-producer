@@ -185,7 +185,9 @@ jobs:
       - name: Extract circuits and assignments artifact
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
         run: |
+          ls -l -a
           unzip -o ${{ env.CAA_ARTIFACT_NAME }}.zip
+          ls -l -a
 
       - name: List artifacts
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
