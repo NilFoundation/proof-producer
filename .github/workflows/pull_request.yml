@@ -192,7 +192,10 @@ jobs:
 
       - name: List artifacts
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
-        run: find .
+        run: |
+          pwd
+          ls -l -a
+          find .
 
       - name: Make proofs for pairs
         working-directory: ${{ steps.strings.outputs.artifact-dir }}
