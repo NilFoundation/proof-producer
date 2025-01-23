@@ -172,7 +172,7 @@ jobs:
           echo "artifact-dir=$(realpath ${{ github.workspace }}/../artifacts)" >> $GITHUB_OUTPUT
 
       - name: Download circuits and assignments artifact
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v8
         with:
           repo: NilFoundation/zkLLVM
           name: ${{ env.CAA_ARTIFACT_NAME }}
@@ -203,7 +203,7 @@ jobs:
 
       - name: Download transpiler output artifact
         id: download-to-artifact
-        uses: dawidd6/action-download-artifact@v3
+        uses: dawidd6/action-download-artifact@v8
         with:
           repo: NilFoundation/zkLLVM
           name: ${{ env.TO_ARTIFACT_NAME }}
